@@ -1,0 +1,108 @@
+# =============================================================================
+# CircleCI — kanopi-assets monorepo: validate + split (Symfony-style)
+# =============================================================================
+# On every branch/tag: lint the configs (circleci config validate), the YAML
+# (yamllint), and the shell scripts (shellcheck). On main / tags, AFTER the lint
+# passes, split each package directory into its own downstream repo with
+# splitsh-lite (manifest: split-packages.txt, logic: bin/monorepo-split.sh) and
+# propagate tags. Auth: GITHUB_TOKEN (downstream push) in the "kanopi-code"
+# context; the Kanopi orbs are public, so validation needs no token. Downstream
+# repos must already exist.
+# =============================================================================
+version: 2.1
+
+parameters:
+  splitsh_version: { type: string, default: "v1.0.1" }
+
+jobs:
+  lint-circleci:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Install CircleCI CLI
+          command: curl -fLSs https://raw.githubusercontent.com/CircleCI-Public/circleci-cli/main/install.sh | sudo bash
+      - run:
+          name: Validate all CircleCI configs
+          command: |
+            set -e
+            circleci config validate --skip-update-check .circleci/config.yml
+            for f in */assets/circleci/config.yml; do
+              echo "== ${f} =="
+              circleci config validate --skip-update-check "${f}"
+            done
+
+  lint-yaml:
+    docker:
+      - image: cimg/python:3.12
+    steps:
+      - checkout
+      - run:
+          name: Install yamllint
+          command: pip install --quiet yamllint
+      - run:
+          name: Validate YAML (configs + tugboat)
+          command: |
+            yamllint -c .yamllint.yml \
+              $(find . \( -name '*.yml' -o -name '*.yaml' \) -not -path './.git/*')
+
+  lint-shell:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Install shellcheck
+          command: |
+            sudo apt-get update -qq
+            sudo apt-get install -y shellcheck
+      - run:
+          name: Shellcheck all scripts
+          command: |
+            find . \( -name '*.sh' -o -name 'dev-multidev' \) -not -path './.git/*' -print0 \
+              | xargs -0 shellcheck
+
+  split:
+    docker:
+      - image: cimg/base:current
+    steps:
+      - checkout
+      - run:
+          name: Install splitsh-lite
+          command: |
+            curl -fsSL -o /tmp/splitsh.tar.gz \
+              "https://github.com/splitsh/lite/releases/download/<< pipeline.parameters.splitsh_version >>/lite_linux_amd64.tar.gz"
+            sudo tar -xzf /tmp/splitsh.tar.gz -C /usr/local/bin splitsh-lite
+            sudo chmod +x /usr/local/bin/splitsh-lite
+      - run:
+          name: Split packages into downstream repos
+          command: bash ./bin/monorepo-split.sh
+
+workflows:
+  validate-and-split:
+    jobs:
+      - lint-circleci:
+          filters:
+            tags:
+              only: /.*/
+      - lint-yaml:
+          filters:
+            tags:
+              only: /.*/
+      - lint-shell:
+          filters:
+            tags:
+              only: /.*/
+      - split:
+          context: kanopi-code
+          requires:
+            - lint-circleci
+            - lint-yaml
+            - lint-shell
+          filters:
+            branches:
+              only:
+                - main
+            tags:
+              only: /.*/

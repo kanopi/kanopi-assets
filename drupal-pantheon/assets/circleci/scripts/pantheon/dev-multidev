@@ -1,0 +1,36 @@
+#!/bin/bash
+#
+# dev-multidev — deploy the build artifact to Pantheon.
+# On the default branch the dev environment is used; otherwise a multidev
+# environment is created/pushed for the PR.
+#
+# All inputs come from the environment: TERMINUS_SITE / DEFAULT_BRANCH from
+# .circleci/env.sh, TERMINUS_ENV / CI_BRANCH from the build-tools image's
+# set-environment, and TERMINUS_TOKEN / GITHUB_TOKEN from the kanopi-code
+# context. Shipped uniform; commit a project copy to diverge.
+set -eo pipefail
+
+: "${TERMINUS_SITE:?set TERMINUS_SITE in .circleci/env.sh}"
+: "${TERMINUS_TOKEN:?set TERMINUS_TOKEN in the kanopi-code context}"
+
+terminus -n auth:login --machine-token="$TERMINUS_TOKEN"
+terminus -n env:wake "$TERMINUS_SITE.dev"
+
+# Clean up environments for merged/closed PRs.
+terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes
+terminus -n build:env:delete:ci "$TERMINUS_SITE" --yes
+
+if [[ "$CI_BRANCH" != "${DEFAULT_BRANCH:-main}" ]]; then
+  terminus -n build:env:create "$TERMINUS_SITE.dev" "$TERMINUS_ENV" --yes
+else
+  terminus -n build:env:push "$TERMINUS_SITE.dev" --yes
+fi
+
+# Release tasks.
+terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- cr
+terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- config-import --yes
+terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- updatedb -y
+terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- cr
+terminus -n env:clear-cache "$TERMINUS_SITE.$TERMINUS_ENV"
+
+terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes

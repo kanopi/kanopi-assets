@@ -1,0 +1,34 @@
+# =============================================================================
+# Tugboat — WordPress on custom / self-managed hosting
+# =============================================================================
+# Seeded once (overwrite:false) — owned by the site. The first init command runs
+# `composer install`, which materializes the gitignored .tugboat/scripts/*.
+# Non-secret settings live in .tugboat/tugboat.env; add the source host's SSH
+# key in the Tugboat dashboard. Change PHP by editing the php image tag below.
+# =============================================================================
+version: 1
+services:
+  php:
+    image: tugboatqa/php:8.2-apache
+    default: true
+    depends:
+      - mysql
+    urls:
+      - /
+    commands:
+      init:
+        - composer install --no-interaction
+        - chmod +x ./.tugboat/scripts/*.sh
+        - ./.tugboat/scripts/install-tools.sh
+      update:
+        - ./.tugboat/scripts/build.sh
+        - ./.tugboat/scripts/database.sh
+        - ./.tugboat/scripts/files.sh
+      build:
+        - ./.tugboat/scripts/deploy.sh
+
+  mysql:
+    image: tugboatqa/mysql:8
+    commands:
+      init:
+        - mysql -e "SET GLOBAL max_allowed_packet=536870912;"

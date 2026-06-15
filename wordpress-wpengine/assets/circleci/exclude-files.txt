@@ -1,0 +1,11 @@
+# Files/paths excluded from the rsync deploy to WP Engine (seeded once; edit per project).
+.git
+.github
+.circleci
+.tugboat
+node_modules
+tests
+.ddev
+README.md
+.gitignore
+wp-content/uploads

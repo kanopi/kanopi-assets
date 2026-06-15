@@ -1,0 +1,31 @@
+#!/bin/bash
+#
+# dev-multidev — deploy the build artifact to Pantheon (WordPress).
+# Default branch -> dev environment; other branches -> PR multidev.
+# Inputs: TERMINUS_SITE / DEFAULT_BRANCH (.circleci/env.sh), TERMINUS_ENV /
+# CI_BRANCH (build-tools set-environment), TERMINUS_TOKEN (kanopi-code context).
+# Shipped uniform; commit a project copy to diverge.
+set -eo pipefail
+
+: "${TERMINUS_SITE:?set TERMINUS_SITE in .circleci/env.sh}"
+: "${TERMINUS_TOKEN:?set TERMINUS_TOKEN in the kanopi-code context}"
+
+terminus -n auth:login --machine-token="$TERMINUS_TOKEN"
+terminus -n env:wake "$TERMINUS_SITE.dev"
+
+terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes
+terminus -n build:env:delete:ci "$TERMINUS_SITE" --yes
+
+if [[ "$CI_BRANCH" != "${DEFAULT_BRANCH:-main}" ]]; then
+  terminus -n build:env:create "$TERMINUS_SITE.dev" "$TERMINUS_ENV" --yes
+else
+  terminus -n build:env:push "$TERMINUS_SITE.dev" --yes
+fi
+
+# WordPress release tasks.
+terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- core update-db || true
+terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- cache flush || true
+terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- rewrite flush || true
+terminus -n env:clear-cache "$TERMINUS_SITE.$TERMINUS_ENV"
+
+terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes

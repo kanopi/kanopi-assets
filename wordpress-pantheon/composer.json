@@ -1,0 +1,22 @@
+{
+    "name": "kanopi/config-wordpress-pantheon",
+    "description": "Kanopi deployment configuration for WordPress on Pantheon (CircleCI, Kanopi orbs).",
+    "type": "library",
+    "license": "MIT",
+    "keywords": ["kanopi", "wordpress", "pantheon", "circleci", "deployment", "composer-assets"],
+    "authors": [
+        { "name": "Kanopi Studios" }
+    ],
+    "require": {
+        "kanopi/composer-assets": "^1"
+    },
+    "extra": {
+        "composer-assets": {
+            "file-mapping": {
+                ".circleci/config.yml":                    { "path": "assets/circleci/config.yml", "overwrite": false, "gitignore": false },
+                ".circleci/env.sh":                        { "path": "assets/circleci/env.sh", "overwrite": false, "gitignore": false },
+                ".circleci/scripts/pantheon/dev-multidev": { "path": "assets/circleci/scripts/pantheon/dev-multidev", "gitignore": true }
+            }
+        }
+    }
+}

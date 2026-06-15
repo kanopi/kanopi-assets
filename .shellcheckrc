@@ -1,0 +1,6 @@
+# shellcheck configuration for kanopi-assets.
+# Tugboat task scripts source ./common.sh via a runtime-resolved path
+# ($(dirname "${BASH_SOURCE[0]}")/common.sh), which shellcheck cannot follow
+# statically — silence "not following" rather than weaken real checks.
+disable=SC1091
+external-sources=true

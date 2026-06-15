@@ -1,0 +1,26 @@
+---
+# yamllint config for kanopi-assets.
+# Goal: assert the YAML is *correct* (parses, no duplicate keys), not enforce a
+# house style. CircleCI/Tugboat configs use aligned flow maps and long lines on
+# purpose, so the cosmetic rules are off; structural rules stay on.
+extends: default
+
+rules:
+  # Correctness — keep these strict.
+  key-duplicates: enable
+  # (syntax/parse errors are always reported regardless of rules)
+
+  # Cosmetic — disabled so they don't fight intentional config formatting.
+  line-length: disable
+  document-start: disable
+  indentation: disable
+  comments: disable
+  comments-indentation: disable
+  empty-lines: disable
+  trailing-spaces: disable
+  truthy: disable
+  colons: disable
+  braces: disable
+  brackets: disable
+  commas: disable
+  new-line-at-end-of-file: disable

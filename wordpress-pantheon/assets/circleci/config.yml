@@ -1,0 +1,275 @@
+# =============================================================================
+# CircleCI — WordPress on Pantheon   (Kanopi orbs)
+# =============================================================================
+# Shipped by kanopi/config-wordpress-pantheon. Per-project values live in
+# .circleci/env.sh (sourced by `load-env` and the deploy script). PHP/Node
+# versions are pipeline parameters (docker images resolve at compile time).
+# Secrets come from the `kanopi-code` context. Bump the orbs or update this
+# package to roll a fix to every site; set `".circleci/config.yml": false` in a
+# site's composer.json to diverge.
+# =============================================================================
+version: 2.1
+
+parameters:
+  php_version:  { type: string, default: "8.3" }
+  node_version: { type: string, default: "20.11.0" }
+  cron_env:     { type: string, default: "live" }
+
+orbs:
+  ci-tools:    kanopi/ci-tools@2
+  cms-updates: kanopi/cms-updates@2
+  slack:       circleci/slack@3.4.2
+  node:        circleci/node@5.0.3
+
+commands:
+  load-env:
+    description: "Make .circleci/env.sh values available to all later steps."
+    steps:
+      - run:
+          name: Load project env
+          command: cat .circleci/env.sh >> "$BASH_ENV"
+
+executors:
+  php:
+    docker:
+      - image: cimg/php:<< pipeline.parameters.php_version >>
+    working_directory: ~/project
+  buildtools:
+    docker:
+      - image: quay.io/pantheon-public/build-tools-ci:8.x-php<< pipeline.parameters.php_version >>
+    working_directory: ~/project
+    environment:
+      TZ: "/usr/share/zoneinfo/America/Los_Angeles"
+      TERM: dumb
+
+jobs:
+  compile-theme:
+    executor: php
+    steps:
+      - checkout
+      - load-env
+      - node/install:
+          node-version: << pipeline.parameters.node_version >>
+      - restore_cache:
+          keys: ["wp-theme-{{ checksum \"composer.lock\" }}", "wp-theme-"]
+      - run:
+          name: Composer install
+          command: composer install || echo "no composer.json; classic WordPress"
+      - run:
+          name: Install + build theme
+          command: |
+            cd "${THEME_PATH}"
+            npm ci
+            npm run build
+      - save_cache:
+          key: wp-theme-{{ checksum "composer.lock" }}
+          paths: ["vendor"]
+      - run:
+          name: Stage compiled assets
+          command: |
+            mkdir -p /tmp/workspace
+            cp -vr "${THEME_PATH}/dist" /tmp/workspace/dist
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths: ["dist"]
+
+  cypress:
+    docker:
+      - image: cimg/php:<< pipeline.parameters.php_version >>-browsers
+        auth: { username: $DOCKERHUB_USER, password: $DOCKERHUB_PASS }
+    resource_class: large
+    working_directory: ~/project
+    steps:
+      - ci-tools/set-variables
+      - checkout
+      - load-env
+      - run:
+          name: Composer install
+          command: composer install || true
+      - ci-tools/copy-ssh-key
+      - node/install:
+          node-version: << pipeline.parameters.node_version >>
+      - ci-tools/install-terminus
+      - run:
+          name: Authorize terminus
+          command: terminus -n auth:login --machine-token="$TERMINUS_TOKEN"
+      - run:
+          name: Prime cache
+          command: curl -I "${SITE_URL}"
+      - run:
+          name: Set Cypress variables
+          command: |
+            (
+              echo "export CYPRESS_BASE_URL='${SITE_URL}'"
+              echo "export PR_ENVIRONMENT='${TERMINUS_SITE}.pr-${CIRCLE_PULL_REQUEST##*/}'"
+            ) >> "$BASH_ENV"
+            source "$BASH_ENV"
+      - run:
+          name: Install Cypress
+          command: npm ci
+          path: tests/cypress
+      - run:
+          name: Run Tests
+          command: |
+            shopt -s globstar
+            circleci tests glob cypress/e2e/**/*.cy.js | circleci tests split --split-by=timings > /tmp/tests-to-run
+            ./node_modules/.bin/cypress run -s $(cat /tmp/tests-to-run)
+          path: tests/cypress
+      - run:
+          when: always
+          name: Generate Report
+          command: npm run merge:reports
+          path: tests/cypress
+      - store_test_results: { path: tests/cypress/cypress/junit }
+      - store_artifacts: { path: tests/cypress/cypress/ }
+
+  deploy-to-pantheon:
+    executor: buildtools
+    steps:
+      - checkout
+      - load-env
+      - ci-tools/copy-ssh-key
+      - ci-tools/remove-files:
+          docroot: "web"
+      - attach_workspace:
+          at: /tmp/workspace
+      - run:
+          name: setup-environment-vars
+          command: /build-tools-ci/scripts/set-environment
+      - run:
+          name: Install dependencies (materializes gitignored .circleci/scripts)
+          command: composer install --no-interaction
+      - run:
+          name: Composer build for Pantheon
+          command: |
+            composer -n build-assets || true
+            composer run prepare-for-pantheon || true
+      - run:
+          name: Copy compiled theme assets
+          command: cp -vr /tmp/workspace/dist "${THEME_PATH}/"
+      - run:
+          name: Deploy to Pantheon (dev / multidev)
+          command: ./.circleci/scripts/pantheon/dev-multidev
+          no_output_timeout: 1h
+
+workflows:
+
+  PHPcs:
+    jobs:
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "PHPcs"
+          context: kanopi-code
+          command: "phpcs"
+          install-command: "install --no-scripts"
+          post-to-github: true
+          post-artifact-to-github-when: on_fail
+          report-title: ":x: phpcs"
+          filters: { branches: { ignore: [main] } }
+
+  PHPstan:
+    jobs:
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "PHPstan"
+          context: kanopi-code
+          command: "phpstan"
+          install-command: "install --no-scripts"
+          post-to-github: true
+          post-artifact-to-github-when: on_fail
+          report-title: ":x: phpstan"
+          filters: { branches: { ignore: [main] } }
+
+  Deployment:
+    when:
+      not:
+        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+    jobs:
+      - compile-theme:
+          context: kanopi-code
+      - deploy-to-pantheon:
+          context: kanopi-code
+          requires: [compile-theme]
+          filters: { branches: { ignore: /^dependabot/ } }
+      - cypress:
+          requires: [deploy-to-pantheon]
+          context: kanopi-code
+          pre-steps: [ci-tools/set-pantheon-url]
+          filters: { branches: { ignore: [main] } }
+          post-steps:
+            - ci-tools/post-artifact-to-github:
+                when: on_fail
+                body-prefix: ":x: Cypress"
+                body-title: "Failing Cypress Run"
+                search-for: "results/mocha-report/mochawesome.html"
+            - ci-tools/post-artifact-to-github:
+                when: on_success
+                body-prefix: ":white_check_mark: Cypress"
+                body-title: "Passing Cypress Run"
+                search-for: "results/mocha-report/mochawesome.html"
+      - ci-tools/lighthouse:
+          requires: [deploy-to-pantheon]
+          context: kanopi-code
+          pre-steps:
+            - ci-tools/set-pantheon-url: { store-as: LIGHTHOUSE_URL }
+          url: "${LIGHTHOUSE_URL}"
+          post-steps:
+            - ci-tools/post-to-github-commit: { body: '@$(ls /opt/reports/*/comment.txt)', when: always }
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/pa11y:
+          requires: [deploy-to-pantheon]
+          context: kanopi-code
+          urls: "${PR_ENV_URL}"
+          pre-steps:
+            - ci-tools/set-pantheon-url: { store-as: PR_ENV_URL }
+          post-steps:
+            - ci-tools/post-to-github-commit: { body: '@/tmp/pa11y-ci-results.txt', when: on_fail }
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/backstopjs:
+          requires: [deploy-to-pantheon]
+          context: kanopi-code
+          advanced-config: true
+          search-find: 'TEST_URL'
+          search-replace: '${TEST_URL}'
+          pre-steps:
+            - ci-tools/set-pantheon-url: { store-as: TEST_URL }
+            - ci-tools/set-pantheon-url: { site-env: "dev", store-as: REFERENCE_URL }
+          post-steps:
+            - ci-tools/post-artifact-to-github:
+                body-prefix: ":x: There was a failure. Click here to view the report:"
+                body-title: BackstopJS
+                search-for: html_report/index.html
+                when: on_fail
+          filters: { branches: { ignore: main } }
+
+  automated-updates:
+    when:
+      and:
+        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        - equal: ["automatic updates", << pipeline.schedule.name >>]
+    jobs:
+      - cms-updates/run-update:
+          cms: wordpress
+          docroot: web
+          site-env: dev
+          site-hosting: pantheon
+          site-id: "${TERMINUS_SITE}"
+          update-method: composer
+          context: kanopi-code
+          php-version: << pipeline.parameters.php_version >>
+          pre-steps: [load-env]
+
+  run_cron:
+    when:
+      and:
+        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        - matches: { pattern: "^cron job.*", value: << pipeline.schedule.name >> }
+    jobs:
+      - ci-tools/terminus-job:
+          context: kanopi-code
+          name: "Run WP Cron"
+          site-id: "${TERMINUS_SITE}"
+          site-env: << pipeline.parameters.cron_env >>
+          command: wp
+          arguments: "cron event run --due-now"
+          pre-steps: [load-env]

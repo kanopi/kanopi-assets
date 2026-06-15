@@ -1,0 +1,37 @@
+# =============================================================================
+# Tugboat — Drupal on Acquia
+# =============================================================================
+# Seeded once (overwrite:false) — owned by the site. The first init command runs
+# `composer install`, which is what materializes the gitignored .tugboat/scripts/*
+# (they are re-scaffolded every install, so fixes flow automatically). Non-secret
+# settings live in .tugboat/tugboat.env; secrets (SSH keys, tokens) go in the
+# Tugboat dashboard. Bump the php image tag here to change PHP version.
+# =============================================================================
+version: 1
+services:
+  php:
+    image: tugboatqa/php:8.3-apache
+    default: true
+    depends:
+      - mysql
+    commands:
+      init:
+        # composer install scaffolds the gitignored .tugboat/scripts/* first.
+        - composer install --no-interaction
+        - chmod +x ./.tugboat/scripts/*.sh
+        - ./.tugboat/scripts/install-tools.sh
+      update:
+        - ./.tugboat/scripts/build.sh
+        - ./.tugboat/scripts/database.sh
+        - ./.tugboat/scripts/files.sh
+      build:
+        - ./.tugboat/scripts/deploy.sh
+
+  memcached:
+    image: tugboatqa/memcached:latest
+
+  mysql:
+    image: tugboatqa/mysql:8.0
+    commands:
+      init:
+        - mysql -e "SET GLOBAL max_allowed_packet=536870912;"

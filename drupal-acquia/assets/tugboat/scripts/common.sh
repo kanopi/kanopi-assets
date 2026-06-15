@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+#
+# common.sh — shared config + helpers for Tugboat tasks (Drupal/Acquia).
+# Gitignored + re-scaffolded each install. Sourced first by every task.
+set -euo pipefail
+
+if [ -n "${TUGBOAT_ROOT:-}" ] && [ -f "${TUGBOAT_ROOT}/.tugboat/tugboat.env" ]; then
+  # shellcheck disable=SC1091
+  source "${TUGBOAT_ROOT}/.tugboat/tugboat.env"
+fi
+
+: "${CMS:=drupal}"
+: "${PROJECT_DOCROOT:=docroot}"
+: "${BUILD_THEME:=true}"
+: "${NODE_PACKAGE_MANAGER:=npm}"
+: "${THEME_PATH:=}"
+: "${THEME_BUILD_COMMAND:=build:prod}"
+: "${DRUSH_ALIAS:=}"
+: "${PROD_URL:=}"
+: "${FILES_PROXY:=true}"
+: "${FILES_RSYNC:=false}"
+: "${BUILD_CYPRESS_USERS:=false}"
+
+CMS_ROOT="${TUGBOAT_ROOT}/${PROJECT_DOCROOT}"
+# shellcheck disable=SC2034  # consumed by scripts that source this file
+DRUSH="${TUGBOAT_ROOT}/vendor/bin/drush --root=${CMS_ROOT}"
+
+log() { echo "==> [$(basename "${0}")] $*"; }
+
+require() {
+  local missing=0 name
+  for name in "$@"; do
+    [ -n "${!name:-}" ] || { echo "!! Required variable '${name}' is not set." >&2; missing=1; }
+  done
+  [ "${missing}" -eq 0 ] || { echo "!! Set the above in tugboat.env or the dashboard." >&2; exit 1; }
+}

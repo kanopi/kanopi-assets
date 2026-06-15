@@ -1,0 +1,165 @@
+# =============================================================================
+# CircleCI — WordPress on WP Engine   (Kanopi orbs)
+# =============================================================================
+# Seeded once (overwrite:false) — owned by the site. Per-project values live in
+# .circleci/env.sh (sourced by `load-env`); PHP/Node versions are pipeline
+# parameters. Deploy is the kanopi/deploy `rsync` orb, gated on git tags
+# (stage-* -> staging, prod-* -> production). The pipeline advances itself with
+# ci-tools/trigger-pipeline (build -> deploy -> test). Secrets: `kanopi-code`.
+# =============================================================================
+version: 2.1
+
+parameters:
+  stage:        { type: string,  default: "build" }
+  php_version:  { type: string,  default: "8.2" }
+  node_version: { type: string,  default: "16.14.2" }
+
+orbs:
+  ci-tools:    kanopi/ci-tools@2
+  cms-updates: kanopi/cms-updates@2
+  deploy:      kanopi/deploy@1
+  slack:       circleci/slack@4
+  node:        circleci/node@5
+
+commands:
+  load-env:
+    steps:
+      - run:
+          name: Load project env
+          command: cat .circleci/env.sh >> "$BASH_ENV"
+
+# --- Workflow gates ---------------------------------------------------------
+is_build: &is_build
+  and:
+    - equal: ["build", << pipeline.parameters.stage >>]
+    - not: { equal: [scheduled_pipeline, << pipeline.trigger_source >>] }
+is_test: &is_test
+  equal: ["test", << pipeline.parameters.stage >>]
+is_updates: &is_updates
+  and:
+    - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+    - equal: ["automatic updates", << pipeline.schedule.name >>]
+
+# --- rsync deploy defaults --------------------------------------------------
+deploy_defaults: &deploy_defaults
+  context: kanopi-code
+  exclude-file: ./.circleci/exclude-files.txt
+  image: cimg/php:<< pipeline.parameters.php_version >>
+  after-checkout:
+    - load-env
+    - run:
+        name: Composer install
+        command: composer install
+  pre-rsync:
+    - ci-tools/remove-files:
+        docroot: "."
+  post-rsync:
+    - ci-tools/trigger-pipeline:
+        parameters: '{"stage":"test"}'
+
+workflows:
+
+  phpcs:
+    when: *is_build
+    jobs:
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: PHPCS
+          context: kanopi-code
+          command: "phpcs"
+          install-command: "install --no-scripts"
+          save-output: true
+          post-to-github: true
+          post-artifact-to-github-when: on_fail
+          report-title: ":x: PHPCS"
+          post-steps:
+            - ci-tools/trigger-pipeline:
+                parameters: '{"stage":"deploy"}'
+          filters:
+            branches: { ignore: [/dependabot.*/] }
+            tags: { only: /.*/ }
+
+  build-deploy:
+    when: *is_build
+    jobs:
+      - deploy/rsync:
+          <<: *deploy_defaults
+          name: Deployment to Staging
+          remote-host: "${WPE_REMOTE_HOST_STG}"
+          remote-user: "${WPE_REMOTE_USER_STG}"
+          remote-path: "${WPE_REMOTE_PATH_STG}"
+          remote-port: "${WPE_REMOTE_PORT_STG}"
+          filters:
+            branches: { ignore: /.*/ }
+            tags: { only: /^stage-.*/ }
+      - deploy/rsync:
+          <<: *deploy_defaults
+          name: Deployment to Production
+          remote-host: "${WPE_REMOTE_HOST_PROD}"
+          remote-user: "${WPE_REMOTE_USER_PROD}"
+          remote-path: "${WPE_REMOTE_PATH_PROD}"
+          remote-port: "${WPE_REMOTE_PORT_PROD}"
+          filters:
+            branches: { ignore: /.*/ }
+            tags: { only: /^prod-.*/ }
+
+  backstopjs:
+    when: *is_test
+    jobs:
+      - ci-tools/backstopjs:
+          context: kanopi-code
+          urls: '/|Homepage'
+          reference-url: "${REFERENCE_URL}"
+          test-url: "${TEST_URL}"
+          pre-steps: [load-env]
+          post-steps:
+            - ci-tools/post-artifact-to-github:
+                body-prefix: "Click here to view the report:"
+                body-title: BackstopJS
+                search-for: html_report/index.html
+                when: on_fail
+          filters:
+            branches: { ignore: [/dependabot.*/] }
+            tags: { only: /.*/ }
+
+  lighthouse:
+    when: *is_test
+    jobs:
+      - ci-tools/lighthouse:
+          context: kanopi-code
+          pre-steps: [load-env]
+          url: "${TEST_URL}"
+          post-steps:
+            - ci-tools/post-to-github-commit: { body: '@$(ls /opt/reports/*/comment.txt)', when: on_fail }
+          filters:
+            branches: { ignore: [/dependabot.*/] }
+            tags: { only: /.*/ }
+
+  pa11y:
+    when: *is_test
+    jobs:
+      - ci-tools/pa11y:
+          context: kanopi-code
+          pre-steps: [load-env]
+          urls: "${TEST_URL}"
+          post-steps:
+            - ci-tools/post-artifact-to-github:
+                when: on_fail
+                body-prefix: "Click here to view the report:"
+                body-title: "Pa11y Results"
+                search-for: "pa11y-ci-results.txt"
+          filters:
+            branches: { ignore: [/dependabot.*/] }
+            tags: { only: /.*/ }
+
+  automatic-updates:
+    when: *is_updates
+    jobs:
+      - cms-updates/run-update:
+          cms: wordpress
+          site-hosting: wpengine
+          site-id: "${WPE_UPDATE_SITE_ID}"
+          update-method: composer
+          context: kanopi-code
+          php-version: << pipeline.parameters.php_version >>
+          pre-steps: [load-env]

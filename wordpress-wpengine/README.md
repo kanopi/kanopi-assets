@@ -1,0 +1,32 @@
+# kanopi/config-wordpress-wpengine
+
+CircleCI + Tugboat deployment configuration for **WordPress on WP Engine**, on
+the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
+
+## Scaffolds
+
+**Committed, seeded once** (`overwrite:false` — you own these):
+`.circleci/config.yml`, `.circleci/env.sh`, `.circleci/exclude-files.txt`,
+`.tugboat/config.yml`, `.tugboat/tugboat.env`, `.tugboat/apache-file-proxy.conf`.
+
+**Gitignored, re-scaffolded each install:**
+`.tugboat/scripts/{common,install-tools,build,database,files,deploy}.sh`.
+
+## CircleCI
+
+`deploy/rsync` to WP Engine, gated on git tags: `stage-*` → staging, `prod-*` →
+production. The pipeline self-advances build → deploy → test via
+`ci-tools/trigger-pipeline`. Fill remotes in `.circleci/env.sh`. Secrets in the
+`kanopi-code` context. PHP/Node versions are pipeline parameters.
+
+## Tugboat — file handling
+
+`files.sh` offers two independent, conditional strategies (set in `tugboat.env`):
+
+| Variable | Default | Effect |
+|---|---|---|
+| `FILES_PROXY` | `true` | Serve missing `wp-content/uploads` from `PROD_URL` via `apache-file-proxy.conf` (no copy) |
+| `FILES_RSYNC` | `false` | rsync `wp-content/uploads` down from the WP Engine source over SSH |
+
+Enable either, both, or neither. The DB comes from the WP Engine nightly backup
+over SSH (`database.sh`). Add the WP Engine SSH key in the Tugboat dashboard.

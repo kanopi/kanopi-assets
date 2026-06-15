@@ -1,0 +1,218 @@
+# =============================================================================
+# CircleCI — Drupal on Acquia   (Kanopi orbs)
+# =============================================================================
+# Seeded once (overwrite:false) — this file is owned by the site. Per-project
+# identity lives in .circleci/env.sh (sourced by `load-env`); PHP/Node versions
+# are pipeline parameters below (used throughout). Deploy is the kanopi/deploy
+# `git` orb pushing a build artifact to Acquia. The post_build_tests workflow is
+# triggered by Tugboat's `online` phase (it calls the CircleCI API with
+# run_post_build_tests=true + the preview URL). Secrets come from `kanopi-code`.
+# =============================================================================
+version: 2.1
+
+parameters:
+  php_version:           { type: string,  default: "8.3" }
+  node_version:          { type: string,  default: "20.17.0" }
+  run_post_build_tests:  { type: boolean, default: false }
+  target_url:            { type: string,  default: "" }
+  tugboat_instance_id:   { type: string,  default: "" }
+
+orbs:
+  ci-tools:    kanopi/ci-tools@2
+  cms-updates: kanopi/cms-updates@2
+  deploy:      kanopi/deploy@1
+  slack:       circleci/slack@4
+  node:        circleci/node@5
+
+commands:
+  load-env:
+    steps:
+      - run:
+          name: Load project env
+          command: cat .circleci/env.sh >> "$BASH_ENV"
+
+executors:
+  php:
+    docker:
+      - image: cimg/php:<< pipeline.parameters.php_version >>
+    working_directory: ~/project
+  node:
+    docker:
+      - image: cimg/node:<< pipeline.parameters.node_version >>
+    working_directory: ~/project
+  cypress:
+    docker:
+      - image: cimg/php:<< pipeline.parameters.php_version >>-browsers
+        auth: { username: $DOCKERHUB_USER, password: $DOCKERHUB_PASS }
+    resource_class: large
+
+jobs:
+  compile-theme:
+    executor: node
+    steps:
+      - checkout
+      - load-env
+      - restore_cache:
+          keys: ["node-{{ .Branch }}-{{ checksum \"composer.lock\" }}", "node-{{ .Branch }}-"]
+      - run:
+          name: Build theme
+          command: |
+            cd "${THEME_PATH}"
+            npm ci
+            npm run "${THEME_BUILD_COMMAND}"
+      - save_cache:
+          key: node-{{ .Branch }}-{{ checksum "composer.lock" }}
+          paths: ["~/.npm"]
+      - run:
+          name: Stage compiled assets
+          command: |
+            mkdir -p /tmp/workspace
+            cp -vr "${THEME_PATH}/dist" /tmp/workspace/dist
+      - persist_to_workspace:
+          root: /tmp/workspace
+          paths: ["dist"]
+
+  cypress:
+    executor: cypress
+    environment:
+      SITE_URL: << pipeline.parameters.target_url >>
+      TUGBOAT_INSTANCE_ID: << pipeline.parameters.tugboat_instance_id >>
+    parallelism: 2
+    steps:
+      - ci-tools/set-variables
+      - checkout
+      - load-env
+      - run:
+          name: Composer install
+          command: composer install --no-interaction
+      - ci-tools/copy-ssh-key
+      - node/install:
+          node-version: << pipeline.parameters.node_version >>
+      - run:
+          name: Prime cache
+          command: curl -I "${SITE_URL}"
+      - run:
+          name: Install + run Cypress
+          command: |
+            npm ci
+            shopt -s globstar
+            circleci tests glob cypress/e2e/**/*.cy.js | circleci tests split --split-by=timings > /tmp/tests-to-run
+            ./node_modules/.bin/cypress run -s $(cat /tmp/tests-to-run) || true
+          path: tests/cypress
+      - store_test_results: { path: tests/cypress/cypress/junit }
+      - store_artifacts: { path: tests/cypress/cypress/ }
+
+workflows:
+
+  static-tests:
+    when:
+      not:
+        or:
+          - << pipeline.parameters.run_post_build_tests >>
+          - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+    jobs:
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "phpcs"
+          context: kanopi-code
+          command: "code-sniff"
+          report-title: ":x: phpcs"
+          save-output: true
+          post-to-github: true
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "phpstan"
+          context: kanopi-code
+          command: "phpstan"
+          report-title: ":x: phpstan"
+          save-output: true
+          post-to-github: true
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "rector-modules"
+          context: kanopi-code
+          command: "rector-modules"
+          report-title: ":x: rector-modules"
+          save-output: true
+          post-to-github: true
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/composer:
+          tag: << pipeline.parameters.php_version >>
+          name: "rector-themes"
+          context: kanopi-code
+          command: "rector-themes"
+          report-title: ":x: rector-themes"
+          save-output: true
+          post-to-github: true
+          filters: { branches: { ignore: [main] } }
+
+  deploy:
+    when:
+      not:
+        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+    jobs:
+      - compile-theme:
+          context: kanopi-code
+      - deploy/git:
+          image: cimg/php:<< pipeline.parameters.php_version >>
+          name: Deploy to Acquia
+          context: kanopi-code
+          git-remote-url: "${ACQUIA_REPO}"
+          git-commit-assets: true
+          requires: [compile-theme]
+          pre-push:
+            - load-env
+            - run:
+                name: Composer build (no dev)
+                command: composer install --no-dev --optimize-autoloader
+            - run:
+                name: Copy compiled theme assets
+                command: cp -vr ./dist "${THEME_PATH}/" 2>/dev/null || cp -vr /tmp/workspace/dist "${THEME_PATH}/"
+            - ci-tools/remove-files:
+                docroot: "docroot"
+
+  post_build_tests:
+    when: << pipeline.parameters.run_post_build_tests >>
+    jobs:
+      - cypress:
+          context: kanopi-code
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/pa11y:
+          context: kanopi-code
+          pre-steps:
+            - run:
+                name: Set URL
+                command: echo "export TEST_URL=<< pipeline.parameters.target_url >>" >> "$BASH_ENV"
+          urls: "$TEST_URL"
+          post-steps:
+            - ci-tools/post-to-github-commit: { body: '@/tmp/pa11y-ci-results.txt', when: on_fail }
+          filters: { branches: { ignore: [main] } }
+      - ci-tools/lighthouse:
+          context: kanopi-code
+          name: "LH - Homepage"
+          pre-steps:
+            - run:
+                name: Set lighthouse url
+                command: echo "export LIGHTHOUSE_URL=<< pipeline.parameters.target_url >>" >> "$BASH_ENV"
+          url: "${LIGHTHOUSE_URL}"
+          post-steps:
+            - ci-tools/post-to-github-commit: { body: '@$(ls /opt/reports/*/comment.txt)', when: always }
+          filters: { branches: { ignore: [main] } }
+
+  automated-updates:
+    when:
+      and:
+        - equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+        - equal: ["automatic updates", << pipeline.schedule.name >>]
+    jobs:
+      - cms-updates/run-update:
+          cms: drupal
+          docroot: docroot
+          site-hosting: acquia
+          site-id: "${ACQUIA_SITE_ID}"
+          update-method: composer
+          context: kanopi-code
+          php-version: << pipeline.parameters.php_version >>
+          pre-steps: [load-env]
