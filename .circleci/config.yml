@@ -2,10 +2,11 @@
 # CircleCI — kanopi-assets monorepo: validate + split (Symfony-style)
 # =============================================================================
 # On every branch/tag: lint the configs (circleci config validate), the YAML
-# (yamllint), and the shell scripts (shellcheck). On main / tags, AFTER the lint
-# passes, split each package directory into its own downstream repo with
-# splitsh-lite (manifest: split-packages.txt, logic: bin/monorepo-split.sh) and
-# propagate tags. Auth: GITHUB_TOKEN (downstream push) in the "kanopi-code"
+# (yamllint), and the shell scripts (shellcheck). AFTER lint passes, split each
+# package directory into its own downstream repo with splitsh-lite (manifest:
+# split-packages.txt, logic: bin/monorepo-split.sh): every branch is mirrored
+# downstream and stale downstream branches (merged/deleted upstream) are pruned;
+# tags propagate. Auth: GITHUB_TOKEN (downstream push) in the "kanopi-code"
 # context; the Kanopi orbs are public, so validation needs no token. Downstream
 # repos must already exist.
 # =============================================================================
@@ -13,6 +14,9 @@ version: 2.1
 
 parameters:
   splitsh_version: { type: string, default: "v1.0.1" }
+
+orbs:
+  ci-tools: kanopi/ci-tools@2
 
 jobs:
   lint-circleci:
@@ -68,6 +72,7 @@ jobs:
       - image: cimg/base:current
     steps:
       - checkout
+      - ci-tools/copy-ssh-key
       - run:
           name: Install splitsh-lite
           command: |
@@ -101,8 +106,7 @@ workflows:
             - lint-yaml
             - lint-shell
           filters:
-            branches:
-              only:
-                - main
+            # All branches mirror downstream; a branch build also prunes stale
+            # downstream branches (merged/deleted upstream). Tags propagate too.
             tags:
               only: /.*/
