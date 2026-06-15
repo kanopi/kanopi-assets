@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-wordpress-custom",
+    "name": "kanopi/composer-assets-wordpress-custom",
     "description": "Kanopi deployment configuration for WordPress on custom/self-managed hosting (CircleCI + Tugboat, Kanopi orbs).",
     "type": "library",
     "license": "MIT",

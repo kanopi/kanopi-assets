@@ -14,12 +14,12 @@ in the **scripts** (gitignored + re-scaffolded on every `composer install`).
 
 | Package | CMS | Host | CircleCI deploy | Tugboat |
 |---|---|---|---|:---:|
-| `kanopi/config-drupal-pantheon`    | Drupal    | Pantheon  | Terminus build/multidev | — |
-| `kanopi/config-drupal-acquia`      | Drupal    | Acquia    | `deploy/git`            | ✅ |
-| `kanopi/config-drupal-custom`      | Drupal    | Custom    | `deploy/rsync` (git alt) | ✅ |
-| `kanopi/config-wordpress-pantheon` | WordPress | Pantheon  | Terminus build/multidev | — |
-| `kanopi/config-wordpress-wpengine` | WordPress | WP Engine | `deploy/rsync`          | ✅ |
-| `kanopi/config-wordpress-custom`   | WordPress | Custom    | `deploy/rsync` (git alt) | ✅ |
+| `kanopi/composer-assets-drupal-pantheon`    | Drupal    | Pantheon  | Terminus build/multidev | — |
+| `kanopi/composer-assets-drupal-acquia`      | Drupal    | Acquia    | `deploy/git`            | ✅ |
+| `kanopi/composer-assets-drupal-custom`      | Drupal    | Custom    | `deploy/rsync` (git alt) | ✅ |
+| `kanopi/composer-assets-wordpress-pantheon` | WordPress | Pantheon  | Terminus build/multidev | — |
+| `kanopi/composer-assets-wordpress-wpengine` | WordPress | WP Engine | `deploy/rsync`          | ✅ |
+| `kanopi/composer-assets-wordpress-custom`   | WordPress | Custom    | `deploy/rsync` (git alt) | ✅ |
 
 Every stack deploys with **CircleCI**. Every host except **Pantheon** (which has
 Multidev) also ships **Tugboat**. **Acquia** is Drupal-only; **WP Engine** is
@@ -83,11 +83,11 @@ Enable either, both, or neither.
     },
     "require": {
         "kanopi/composer-assets": "^1",
-        "kanopi/config-drupal-pantheon": "^1"
+        "kanopi/composer-assets-drupal-pantheon": "^1"
     },
     "config": { "allow-plugins": { "kanopi/composer-assets": true } },
     "extra": {
-        "composer-assets": { "allowed-packages": ["kanopi/config-drupal-pantheon"] }
+        "composer-assets": { "allowed-packages": ["kanopi/composer-assets-drupal-pantheon"] }
     }
 }
 ```
@@ -104,7 +104,7 @@ package's `README.md` for its exact variables.
 
 ```
 {cms}-{host}/
-├── composer.json            # kanopi/config-{cms}-{host} + file-mapping
+├── composer.json            # kanopi/composer-assets-{cms}-{host} + file-mapping
 ├── README.md
 └── assets/
     ├── circleci/
@@ -121,7 +121,7 @@ package's `README.md` for its exact variables.
 ## Publishing — monorepo split (Symfony-style)
 
 This repo is a **monorepo**. Each package directory is mirrored read-only into
-its own GitHub repo (`kanopi/config-{cms}-{host}`) so Composer can resolve a
+its own GitHub repo (`kanopi/composer-assets-{cms}-{host}`) so Composer can resolve a
 dedicated package per stack — the same pattern Symfony uses to split
 `src/Symfony/Component/*` into standalone component repos.
 
@@ -130,7 +130,8 @@ dedicated package per stack — the same pattern Symfony uses to split
 | `split-packages.txt` | manifest: `<directory> <org/repo>` per package |
 | `bin/monorepo-split.sh` | engine — `splitsh-lite` computes each subtree split, pushes it downstream |
 | `.circleci/config.yml` | runs the split on `main` pushes and on tags |
-| `bin/create-split-repos.sh` | one-time `gh` helper to create the downstream repos |
+| `bin/create-split-repos.sh` | one-time **local** `gh` helper: creates each downstream repo and locks it down read-only |
+| `{pkg}/.github/workflows/close-pull-requests.yml` | shipped in each package; splits down and auto-closes PRs on the mirror |
 
 **How it runs** (root `.circleci/config.yml`, `validate-and-split` workflow):
 
@@ -143,7 +144,7 @@ dedicated package per stack — the same pattern Symfony uses to split
 - **push to `main`** → after lint passes, force-push each package's subtree
   split to its downstream `main` (continuous mirror).
 - **git tag `vX.Y.Z`** → after lint passes, push the split commit as that tag to
-  every downstream repo, so `composer require kanopi/config-...:^X.Y` resolves.
+  every downstream repo, so `composer require kanopi/composer-assets-...:^X.Y` resolves.
 
 The `split` job `requires` the three lint jobs, so a broken config or script
 never propagates downstream. The Kanopi orbs are public, so the lint jobs need
@@ -152,14 +153,22 @@ no secrets; only `split` uses the `kanopi-code` context (for the downstream-push
 
 **Setup (once):**
 
-1. `./bin/create-split-repos.sh` (or create the repos by hand).
+1. `./bin/create-split-repos.sh` — run **locally** (needs interactive `gh` admin
+   rights; CI never runs it). It creates each downstream repo and locks it down:
+   issues, wiki, projects, discussions, and forking **disabled**, with the
+   description/homepage pointing back here.
 2. Add a `GITHUB_TOKEN` (PAT with push access to the downstream repos) to the
    CircleCI `kanopi-code` context.
 3. Push `main`; tag a release (`git tag v1.0.0 && git push --tags`).
 
-Downstream repos are **read-only** — never commit to them directly; edit here
-and let the split propagate. Consuming sites point Composer at the split repo
-(or a Satis/Packagist entry), not at this monorepo.
+**Read-only enforcement.** Downstream repos are mirrors — never commit to them
+directly; edit here and let the split propagate. GitHub has no switch to disable
+pull requests, so each package ships `.github/workflows/close-pull-requests.yml`
+(it splits down to the mirror root and auto-closes any PR with a pointer back
+here), and every package README carries a read-only banner directing issues and
+PRs to this repo — the same convention as
+[`symfony/yaml`](https://github.com/symfony/yaml). Consuming sites point Composer
+at the split repo (or a Satis/Packagist entry), not at this monorepo.
 
 ## Validating changes locally
 

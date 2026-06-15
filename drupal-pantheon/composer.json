@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-drupal-pantheon",
+    "name": "kanopi/composer-assets-drupal-pantheon",
     "description": "Kanopi deployment configuration for Drupal on Pantheon (CircleCI, Kanopi orbs).",
     "type": "library",
     "license": "MIT",

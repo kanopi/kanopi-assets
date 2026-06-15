@@ -3,9 +3,9 @@
 # bin/monorepo-split.sh, the way Symfony splits src/Symfony/Component/* into
 # standalone component repos. Lines starting with # are ignored.
 
-drupal-pantheon      kanopi/config-drupal-pantheon
-wordpress-pantheon   kanopi/config-wordpress-pantheon
-drupal-acquia        kanopi/config-drupal-acquia
-drupal-custom        kanopi/config-drupal-custom
-wordpress-wpengine   kanopi/config-wordpress-wpengine
-wordpress-custom     kanopi/config-wordpress-custom
+drupal-pantheon      kanopi/composer-assets-drupal-pantheon
+wordpress-pantheon   kanopi/composer-assets-wordpress-pantheon
+drupal-acquia        kanopi/composer-assets-drupal-acquia
+drupal-custom        kanopi/composer-assets-drupal-custom
+wordpress-wpengine   kanopi/composer-assets-wordpress-wpengine
+wordpress-custom     kanopi/composer-assets-wordpress-custom

@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-wordpress-pantheon",
+    "name": "kanopi/composer-assets-wordpress-pantheon",
     "description": "Kanopi deployment configuration for WordPress on Pantheon (CircleCI, Kanopi orbs).",
     "type": "library",
     "license": "MIT",

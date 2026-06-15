@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-drupal-custom",
+    "name": "kanopi/composer-assets-drupal-custom",
     "description": "Kanopi deployment configuration for Drupal on custom/self-managed hosting (CircleCI + Tugboat, Kanopi orbs).",
     "type": "library",
     "license": "MIT",

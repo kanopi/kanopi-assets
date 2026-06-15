@@ -1,0 +1,42 @@
+---
+# Close pull requests — this repository is a READ-ONLY subtree split of
+# kanopi/kanopi-assets. Pull requests cannot be accepted here; this workflow
+# auto-closes them with a pointer to the main repo. Edit code in kanopi-assets,
+# not here. (This file lives at the package root in the monorepo and splits down
+# to the mirror root, where GitHub Actions runs it.)
+name: Close pull requests (read-only mirror)
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const main = 'kanopi/kanopi-assets';
+            const number = context.payload.pull_request.number;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: number,
+              body: [
+                'Thanks for the contribution! This repository is a **read-only mirror** —',
+                `a subtree split of [\`${main}\`](https://github.com/${main}) — so pull`,
+                'requests cannot be merged here.',
+                '',
+                `Please re-open this change against the main repository: https://github.com/${main}`,
+              ].join('\n'),
+            });
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: number,
+              state: 'closed',
+            });

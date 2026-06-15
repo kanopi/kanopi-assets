@@ -1,7 +1,7 @@
 # =============================================================================
 # CircleCI — Drupal on Pantheon   (Kanopi orbs)
 # =============================================================================
-# Shipped by kanopi/config-drupal-pantheon. The per-project values live in
+# Shipped by kanopi/composer-assets-drupal-pantheon. The per-project values live in
 # .circleci/env.sh (sourced by the `load-env` command below and by the deploy
 # script). The only compile-time knobs are the PHP/Node versions, exposed as
 # pipeline parameters because CircleCI resolves docker images before any file
@@ -9,7 +9,7 @@
 # come from the `kanopi-code` context.
 #
 # To push a fix to every site: edit this file (or bump the orb versions) and
-# `composer update kanopi/config-drupal-pantheon`. A site that must diverge sets
+# `composer update kanopi/composer-assets-drupal-pantheon`. A site that must diverge sets
 # `".circleci/config.yml": false` in its own composer.json and commits its copy.
 # =============================================================================
 version: 2.1

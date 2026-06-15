@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-wordpress-wpengine",
+    "name": "kanopi/composer-assets-wordpress-wpengine",
     "description": "Kanopi deployment configuration for WordPress on WP Engine (CircleCI + Tugboat, Kanopi orbs).",
     "type": "library",
     "license": "MIT",

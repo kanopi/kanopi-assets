@@ -1,4 +1,11 @@
-# kanopi/config-wordpress-wpengine
+# kanopi/composer-assets-wordpress-wpengine
+
+> [!IMPORTANT]
+> **Read-only mirror.** This repository is a subtree split of
+> [`kanopi/kanopi-assets`](https://github.com/kanopi/kanopi-assets) and is updated
+> automatically. Issues are disabled and pull requests are closed automatically —
+> **report issues and open pull requests on the
+> [main `kanopi-assets` repository](https://github.com/kanopi/kanopi-assets).**
 
 CircleCI + Tugboat deployment configuration for **WordPress on WP Engine**, on
 the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).

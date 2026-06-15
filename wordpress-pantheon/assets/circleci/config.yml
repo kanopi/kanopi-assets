@@ -1,7 +1,7 @@
 # =============================================================================
 # CircleCI — WordPress on Pantheon   (Kanopi orbs)
 # =============================================================================
-# Shipped by kanopi/config-wordpress-pantheon. Per-project values live in
+# Shipped by kanopi/composer-assets-wordpress-pantheon. Per-project values live in
 # .circleci/env.sh (sourced by `load-env` and the deploy script). PHP/Node
 # versions are pipeline parameters (docker images resolve at compile time).
 # Secrets come from the `kanopi-code` context. Bump the orbs or update this

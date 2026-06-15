@@ -1,4 +1,11 @@
-# kanopi/config-wordpress-pantheon
+# kanopi/composer-assets-wordpress-pantheon
+
+> [!IMPORTANT]
+> **Read-only mirror.** This repository is a subtree split of
+> [`kanopi/kanopi-assets`](https://github.com/kanopi/kanopi-assets) and is updated
+> automatically. Issues are disabled and pull requests are closed automatically —
+> **report issues and open pull requests on the
+> [main `kanopi-assets` repository](https://github.com/kanopi/kanopi-assets).**
 
 CircleCI deployment configuration for **WordPress on Pantheon**, built on the
 Kanopi orbs (`kanopi/ci-tools`, `kanopi/cms-updates`). Pantheon uses Multidev

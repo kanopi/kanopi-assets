@@ -1,5 +1,5 @@
 {
-    "name": "kanopi/config-drupal-acquia",
+    "name": "kanopi/composer-assets-drupal-acquia",
     "description": "Kanopi deployment configuration for Drupal on Acquia (CircleCI + Tugboat, Kanopi orbs).",
     "type": "library",
     "license": "MIT",
