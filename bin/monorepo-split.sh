@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 #
 # monorepo-split.sh — split each package directory into its own GitHub repo,
-# mirroring the Symfony monorepo approach (splitsh-lite computes a subtree split
-# commit; we push it downstream). Read-only mirror: never edit the splits.
+# mirroring the Symfony monorepo approach. Uses git's built-in `git subtree
+# split` to compute a subtree commit, then pushes it downstream. Read-only
+# mirror: never edit the splits.
 #
 # Modes (auto-detected from the CircleCI environment):
 #   - tag build   ($CIRCLE_TAG set): push the split commit as that tag to each
@@ -21,7 +22,7 @@
 #                               downstream repos) installed by ci-tools/copy-ssh-key
 #                               in .circleci/config.yml
 #
-# Requires: splitsh-lite on PATH (installed by .circleci/config.yml).
+# Requires: git with `git subtree` (bundled with modern git; no external binary).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -29,7 +30,6 @@ MANIFEST="${ROOT}/split-packages.txt"
 TAG="${CIRCLE_TAG:-}"
 BRANCH="${CIRCLE_BRANCH:-}"
 
-command -v splitsh-lite >/dev/null || { echo "!! splitsh-lite not found on PATH" >&2; exit 1; }
 [ -f "${MANIFEST}" ] || { echo "!! manifest not found: ${MANIFEST}" >&2; exit 1; }
 
 # Push downstream over SSH (key installed by ci-tools/copy-ssh-key).
@@ -44,8 +44,11 @@ upstream_branches() { git ls-remote --heads origin | awk '{sub("refs/heads/","",
 
 split_sha() {
   local sha
-  sha="$(splitsh-lite --prefix="$1/")"
-  [ -n "${sha}" ] || { echo "!! empty split SHA for $1" >&2; return 1; }
+  sha="$(git -C "${ROOT}" subtree split --prefix="$1" 2>/dev/null | tail -n1 || true)"
+  if ! printf '%s' "${sha}" | grep -Eq '^[0-9a-f]{40}$'; then
+    echo "!! git subtree split produced no commit for '$1' (is 'git subtree' available?)" >&2
+    return 1
+  fi
   printf '%s' "${sha}"
 }
 

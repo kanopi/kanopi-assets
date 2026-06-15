@@ -128,7 +128,7 @@ dedicated package per stack — the same pattern Symfony uses to split
 | Piece | Role |
 |---|---|
 | `split-packages.txt` | manifest: `<directory> <org/repo>` per package |
-| `bin/monorepo-split.sh` | engine — `splitsh-lite` computes each subtree split, pushes it downstream |
+| `bin/monorepo-split.sh` | engine — `git subtree split` computes each split, pushes it downstream |
 | `.circleci/config.yml` | runs the split on every branch push and on tags |
 | `bin/create-split-repos.sh` | one-time **local** `gh` helper: creates each downstream repo and locks it down read-only |
 | `{pkg}/.github/workflows/close-pull-requests.yml` | shipped in each package; splits down and auto-closes PRs on the mirror |

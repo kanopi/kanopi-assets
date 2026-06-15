@@ -3,7 +3,7 @@
 # =============================================================================
 # On every branch/tag: lint the configs (circleci config validate), the YAML
 # (yamllint), and the shell scripts (shellcheck). AFTER lint passes, split each
-# package directory into its own downstream repo with splitsh-lite (manifest:
+# package directory into its own downstream repo with `git subtree split` (manifest:
 # split-packages.txt, logic: bin/monorepo-split.sh): every branch is mirrored
 # downstream and stale downstream branches (merged/deleted upstream) are pruned;
 # tags propagate. Downstream pushes authenticate with an SSH key (machine user
@@ -12,9 +12,6 @@
 # needs no token. Downstream repos must already exist.
 # =============================================================================
 version: 2.1
-
-parameters:
-  splitsh_version: { type: string, default: "v1.0.1" }
 
 orbs:
   ci-tools: kanopi/ci-tools@2
@@ -74,13 +71,6 @@ jobs:
     steps:
       - checkout
       - ci-tools/copy-ssh-key
-      - run:
-          name: Install splitsh-lite
-          command: |
-            curl -fsSL -o /tmp/splitsh.tar.gz \
-              "https://github.com/splitsh/lite/releases/download/<< pipeline.parameters.splitsh_version >>/lite_linux_amd64.tar.gz"
-            sudo tar -xzf /tmp/splitsh.tar.gz -C /usr/local/bin splitsh-lite
-            sudo chmod +x /usr/local/bin/splitsh-lite
       - run:
           name: Split packages into downstream repos
           command: bash ./bin/monorepo-split.sh
