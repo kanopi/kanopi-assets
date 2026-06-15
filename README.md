@@ -129,7 +129,7 @@ dedicated package per stack — the same pattern Symfony uses to split
 |---|---|
 | `split-packages.txt` | manifest: `<directory> <org/repo>` per package |
 | `bin/monorepo-split.sh` | engine — `splitsh-lite` computes each subtree split, pushes it downstream |
-| `.circleci/config.yml` | runs the split on `main` pushes and on tags |
+| `.circleci/config.yml` | runs the split on every branch push and on tags |
 | `bin/create-split-repos.sh` | one-time **local** `gh` helper: creates each downstream repo and locks it down read-only |
 | `{pkg}/.github/workflows/close-pull-requests.yml` | shipped in each package; splits down and auto-closes PRs on the mirror |
 
@@ -141,8 +141,11 @@ dedicated package per stack — the same pattern Symfony uses to split
   - `lint-yaml` — `yamllint -c .yamllint.yml` over every `.yml`/`.yaml`
     (CircleCI + Tugboat), checking correctness (parse, duplicate keys), not style.
   - `lint-shell` — `shellcheck` (config in `.shellcheckrc`) over every script.
-- **push to `main`** → after lint passes, force-push each package's subtree
-  split to its downstream `main` (continuous mirror).
+- **push to any branch** → after lint passes, force-push each package's subtree
+  split to the **same-named branch** downstream, then **prune** any downstream
+  branch that no longer exists upstream. CircleCI gets no branch-delete event, so
+  a merged/deleted branch is cleaned up on the next run — e.g. the `main` build
+  triggered by the merge removes the merged feature branch downstream.
 - **git tag `vX.Y.Z`** → after lint passes, push the split commit as that tag to
   every downstream repo, so `composer require kanopi/composer-assets-...:^X.Y` resolves.
 
@@ -157,8 +160,9 @@ no secrets; only `split` uses the `kanopi-code` context (for the downstream-push
    rights; CI never runs it). It creates each downstream repo and locks it down:
    issues, wiki, projects, discussions, and forking **disabled**, with the
    description/homepage pointing back here.
-2. Add a `GITHUB_TOKEN` (PAT with push access to the downstream repos) to the
-   CircleCI `kanopi-code` context.
+2. Add a machine-user **SSH key** with push access to the downstream repos under
+   **Project Settings → SSH Keys** (the `split` job installs it via
+   `ci-tools/copy-ssh-key`).
 3. Push `main`; tag a release (`git tag v1.0.0 && git push --tags`).
 
 **Read-only enforcement.** Downstream repos are mirrors — never commit to them

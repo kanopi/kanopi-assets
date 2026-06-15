@@ -6,9 +6,10 @@
 # package directory into its own downstream repo with splitsh-lite (manifest:
 # split-packages.txt, logic: bin/monorepo-split.sh): every branch is mirrored
 # downstream and stale downstream branches (merged/deleted upstream) are pruned;
-# tags propagate. Auth: GITHUB_TOKEN (downstream push) in the "kanopi-code"
-# context; the Kanopi orbs are public, so validation needs no token. Downstream
-# repos must already exist.
+# tags propagate. Downstream pushes authenticate with an SSH key (machine user
+# with write access to the splits) installed by ci-tools/copy-ssh-key; add it in
+# Project Settings -> SSH Keys. The Kanopi orbs are public, so config validation
+# needs no token. Downstream repos must already exist.
 # =============================================================================
 version: 2.1
 

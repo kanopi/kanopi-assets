@@ -17,8 +17,9 @@
 #
 # Inputs:
 #   split-packages.txt          manifest of "<dir> <org/repo>" lines
-#   GITHUB_TOKEN                 PAT with push access to the downstream repos
-#                                (CircleCI "kanopi-code" context; value masked in logs)
+#   downstream push auth        an SSH key (machine user with write access to the
+#                               downstream repos) installed by ci-tools/copy-ssh-key
+#                               in .circleci/config.yml
 #
 # Requires: splitsh-lite on PATH (installed by .circleci/config.yml).
 set -euo pipefail
@@ -28,14 +29,15 @@ MANIFEST="${ROOT}/split-packages.txt"
 TAG="${CIRCLE_TAG:-}"
 BRANCH="${CIRCLE_BRANCH:-}"
 
-: "${GITHUB_TOKEN:?Set GITHUB_TOKEN (PAT with downstream push access) in the kanopi-code context}"
 command -v splitsh-lite >/dev/null || { echo "!! splitsh-lite not found on PATH" >&2; exit 1; }
 [ -f "${MANIFEST}" ] || { echo "!! manifest not found: ${MANIFEST}" >&2; exit 1; }
 
+# Push downstream over SSH (key installed by ci-tools/copy-ssh-key).
+export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"
 git config --global --add safe.directory "${ROOT}" 2>/dev/null || true
 git -C "${ROOT}" fetch --tags --force --quiet origin || true
 
-remote_url() { printf 'https://x-access-token:%s@github.com/%s.git' "${GITHUB_TOKEN}" "$1"; }
+remote_url() { printf 'git@github.com:%s.git' "$1"; }
 
 # Authoritative list of upstream branch names (used to prune the downstream).
 upstream_branches() { git ls-remote --heads origin | awk '{sub("refs/heads/","",$2); print $2}'; }
