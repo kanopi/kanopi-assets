@@ -36,6 +36,7 @@ lockdown() {
     -F has_projects=false \
     -F has_discussions=false \
     -F allow_forking=false \
+    -F has_pull_requests=false \
     -f description="[READ-ONLY] subtree split of ${MAIN_REPO}/${dir}. Report issues & open PRs at ${MAIN_REPO}." \
     -f homepage="https://github.com/${MAIN_REPO}" \
     >/dev/null
