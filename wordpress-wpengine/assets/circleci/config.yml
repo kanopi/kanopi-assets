@@ -13,6 +13,13 @@ parameters:
   stage:        { type: string,  default: "build" }
   php_version:  { type: string,  default: "8.2" }
   node_version: { type: string,  default: "16.14.2" }
+  # Optional post-build stages. Flip a default to false to skip that job for
+  # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
+  # resolves the workflow before env.sh is sourced). Theme build is toggled
+  # separately via BUILD_THEME in .circleci/env.sh.
+  run_backstop:   { type: boolean, default: true }
+  run_lighthouse: { type: boolean, default: true }
+  run_pa11y:      { type: boolean, default: true }
 
 orbs:
   ci-tools:    kanopi/ci-tools@2
@@ -27,6 +34,17 @@ commands:
       - run:
           name: Load project env
           command: cat .circleci/env.sh >> "$BASH_ENV"
+  gate:
+    description: "End the job early (as success) unless the given toggle is true."
+    parameters:
+      enabled: { type: boolean }
+    steps:
+      - unless:
+          condition: << parameters.enabled >>
+          steps:
+            - run:
+                name: Stage disabled via pipeline parameter — skipping
+                command: circleci-agent step halt
 
 # --- Workflow gates ---------------------------------------------------------
 is_build: &is_build
@@ -48,8 +66,11 @@ deploy_defaults: &deploy_defaults
   after-checkout:
     - load-env
     - run:
-        name: Composer install
+        name: Composer install (also materializes gitignored .circleci/scripts)
         command: composer install
+    - run:
+        name: Compile theme
+        command: ./.circleci/scripts/compile-theme.sh
   pre-rsync:
     - ci-tools/remove-files:
         docroot: "."
@@ -111,7 +132,9 @@ workflows:
           urls: '/|Homepage'
           reference-url: "${REFERENCE_URL}"
           test-url: "${TEST_URL}"
-          pre-steps: [load-env]
+          pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_backstop >> }
+            - load-env
           post-steps:
             - ci-tools/post-artifact-to-github:
                 body-prefix: "Click here to view the report:"
@@ -127,7 +150,9 @@ workflows:
     jobs:
       - ci-tools/lighthouse:
           context: kanopi-code
-          pre-steps: [load-env]
+          pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_lighthouse >> }
+            - load-env
           url: "${TEST_URL}"
           post-steps:
             - ci-tools/post-to-github-commit: { body: '@$(ls /opt/reports/*/comment.txt)', when: on_fail }
@@ -140,7 +165,9 @@ workflows:
     jobs:
       - ci-tools/pa11y:
           context: kanopi-code
-          pre-steps: [load-env]
+          pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_pa11y >> }
+            - load-env
           urls: "${TEST_URL}"
           post-steps:
             - ci-tools/post-artifact-to-github:

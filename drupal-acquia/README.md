@@ -26,6 +26,7 @@ Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 customize, edit + set the path to `false` in your `composer.json` to take
 ownership):
 
+`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
 `.tugboat/scripts/{common,install-tools,build,database,deploy}.sh`
 
 ## PHP version
@@ -40,6 +41,15 @@ Fill `.circleci/env.sh`. Secrets in the `kanopi-code` context: `GITHUB_TOKEN`,
 `DOCKERHUB_USER`, `DOCKERHUB_PASS`, `SLACK_WEBHOOK`, `TUGBOAT_TOKEN`. The
 `post_build_tests` workflow is triggered by Tugboat's `online` phase calling the
 CircleCI API with `run_post_build_tests`, `target_url`, `tugboat_instance_id`.
+
+## Toggling stages
+
+- **Theme build** — set `BUILD_THEME="false"` in `env.sh` for a theme-less /
+  no-build site (also auto-skips when the theme has no `package.json`).
+- **Post-build jobs** — boolean pipeline parameters in `config.yml`
+  (`run_cypress`, `run_lighthouse`, `run_pa11y`), all default `true`. Flip a
+  default to `false` to skip that job. They live in `config.yml`, not `env.sh` —
+  CircleCI resolves the workflow before `env.sh` is sourced.
 
 ## Tugboat
 

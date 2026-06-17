@@ -8,4 +8,13 @@ tests
 .ddev
 README.md
 .gitignore
+
+# Environment-specific / host-managed config — never overwrite the server's copy
+# (these hold DB credentials and per-environment settings).
+web/sites/default/settings.php
+web/sites/default/settings.local.php
+web/sites/default/settings.ddev.php
+web/sites/default/services.local.yml
+
+# Runtime-generated content (lives on the server, not in the repo).
 web/sites/default/files

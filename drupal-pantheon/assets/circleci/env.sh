@@ -21,6 +21,8 @@ export DEFAULT_BRANCH="main"
 export DOCROOT="web"
 export THEME_NAME="mytheme"
 export THEME_PATH="web/themes/custom/mytheme"
+export THEME_BUILD_COMMAND="build"            # npm script run by compile-theme.sh
+export BUILD_THEME="true"                     # set "false" for a theme-less / no-build site
 
 # NOTE: PHP / Node versions are CircleCI pipeline parameters at the top of
 # config.yml (docker images are resolved at config-compile time, before this

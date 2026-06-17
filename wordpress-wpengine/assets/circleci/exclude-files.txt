@@ -8,4 +8,20 @@ tests
 .ddev
 README.md
 .gitignore
+
+# Environment-specific config — WP Engine generates/manages wp-config.php;
+# never overwrite it (it holds DB credentials and per-environment settings).
+wp-config.php
+wp-config-local.php
+wp-config-ddev.php
+.env
+
+# WP Engine platform drop-ins (host-managed; overwriting them breaks the site).
+_wpeprivate
+wp-content/object-cache.php
+wp-content/advanced-cache.php
+wp-content/mu-plugins/mu-plugin.php
+wp-content/mu-plugins/wpengine-common
+
+# Runtime-generated content (lives on the server, not in the repo).
 wp-content/uploads

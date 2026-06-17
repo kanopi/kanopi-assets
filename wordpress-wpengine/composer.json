@@ -16,6 +16,7 @@
                 ".circleci/config.yml":             { "path": "assets/circleci/config.yml", "overwrite": false, "gitignore": false },
                 ".circleci/env.sh":                 { "path": "assets/circleci/env.sh", "overwrite": false, "gitignore": false },
                 ".circleci/exclude-files.txt":      { "path": "assets/circleci/exclude-files.txt", "overwrite": false, "gitignore": false },
+                ".circleci/scripts/compile-theme.sh": { "path": "assets/circleci/scripts/compile-theme.sh", "gitignore": true },
                 ".tugboat/config.yml":              { "path": "assets/tugboat/config.yml", "overwrite": false, "gitignore": false },
                 ".tugboat/tugboat.env":             { "path": "assets/tugboat/tugboat.env", "overwrite": false, "gitignore": false },
                 ".tugboat/apache-file-proxy.conf":  { "path": "assets/tugboat/apache-file-proxy.conf", "overwrite": false, "gitignore": false },

@@ -26,11 +26,9 @@ else
   terminus -n build:env:push "$TERMINUS_SITE.dev" --yes
 fi
 
-# Release tasks.
-terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- cr
-terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- config-import --yes
-terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- updatedb -y
-terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- cr
+# Release tasks. `drush deploy` runs updatedb, cache:rebuild, config:import
+# and deploy:hook in the correct order (replaces the manual cr/cim/updb dance).
+terminus -n drush "$TERMINUS_SITE.$TERMINUS_ENV" -- deploy -y
 terminus -n env:clear-cache "$TERMINUS_SITE.$TERMINUS_ENV"
 
 terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes

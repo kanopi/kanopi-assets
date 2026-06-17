@@ -17,6 +17,7 @@ for preview/QA, so there is **no Tugboat** config here.
 |---|---|---|
 | `.circleci/config.yml` | replaced on update | phpcs/phpstan, compile→deploy→cypress/lighthouse/pa11y/backstop, automated-updates, cron |
 | `.circleci/env.sh` | **seed once** (`overwrite:false`) | per-project fill-in file |
+| `.circleci/scripts/compile-theme.sh` | replaced on update | Theme build (`npm ci` + `npm run $THEME_BUILD_COMMAND`) + asset staging |
 | `.circleci/scripts/pantheon/dev-multidev` | replaced on update | Pantheon dev/multidev deploy (wp-cli release tasks) |
 
 Per-project values live only in `env.sh`; the logic is in the orbs + shipped
@@ -28,6 +29,15 @@ commits its own copy.
 
 `TERMINUS_SITE`, `PANTHEON_UUID`, `DEFAULT_BRANCH`, `DOCROOT`, `THEME_NAME`,
 `THEME_PATH`. PHP/Node versions are pipeline parameters in `config.yml`.
+
+## Toggling stages
+
+- **Theme build** — set `BUILD_THEME="false"` in `env.sh` for a theme-less /
+  no-build site (also auto-skips when the theme has no `package.json`).
+- **Post-deploy jobs** — boolean pipeline parameters in `config.yml`
+  (`run_cypress`, `run_lighthouse`, `run_pa11y`, `run_backstop`), all default
+  `true`. Flip a default to `false` to skip that job. They live in `config.yml`,
+  not `env.sh` — CircleCI resolves the workflow before `env.sh` is sourced.
 
 ## Secrets (CircleCI `kanopi-code` context)
 

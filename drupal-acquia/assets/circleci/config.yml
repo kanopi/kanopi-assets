@@ -16,6 +16,13 @@ parameters:
   run_post_build_tests:  { type: boolean, default: false }
   target_url:            { type: string,  default: "" }
   tugboat_instance_id:   { type: string,  default: "" }
+  # Optional post-build stages. Flip a default to false to skip that job for
+  # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
+  # resolves the workflow before env.sh is sourced). Theme build is toggled
+  # separately via BUILD_THEME in .circleci/env.sh.
+  run_cypress:    { type: boolean, default: true }
+  run_lighthouse: { type: boolean, default: true }
+  run_pa11y:      { type: boolean, default: true }
 
 orbs:
   ci-tools:    kanopi/ci-tools@2
@@ -30,6 +37,17 @@ commands:
       - run:
           name: Load project env
           command: cat .circleci/env.sh >> "$BASH_ENV"
+  gate:
+    description: "End the job early (as success) unless the given toggle is true."
+    parameters:
+      enabled: { type: boolean }
+    steps:
+      - unless:
+          condition: << parameters.enabled >>
+          steps:
+            - run:
+                name: Stage disabled via pipeline parameter — skipping
+                command: circleci-agent step halt
 
 executors:
   php:
@@ -48,26 +66,26 @@ executors:
 
 jobs:
   compile-theme:
-    executor: node
+    # php executor (not node) so `composer install` can run — that is what
+    # materializes the gitignored .circleci/scripts/compile-theme.sh. node is
+    # added on top for the theme build.
+    executor: php
     steps:
       - checkout
       - load-env
+      - node/install:
+          node-version: << pipeline.parameters.node_version >>
       - restore_cache:
           keys: ["node-{{ .Branch }}-{{ checksum \"composer.lock\" }}", "node-{{ .Branch }}-"]
       - run:
-          name: Build theme
-          command: |
-            cd "${THEME_PATH}"
-            npm ci
-            npm run "${THEME_BUILD_COMMAND}"
+          name: Composer install (also materializes gitignored .circleci/scripts)
+          command: composer install --no-interaction
+      - run:
+          name: Compile theme
+          command: ./.circleci/scripts/compile-theme.sh
       - save_cache:
           key: node-{{ .Branch }}-{{ checksum "composer.lock" }}
           paths: ["~/.npm"]
-      - run:
-          name: Stage compiled assets
-          command: |
-            mkdir -p /tmp/workspace
-            cp -vr "${THEME_PATH}/dist" /tmp/workspace/dist
       - persist_to_workspace:
           root: /tmp/workspace
           paths: ["dist"]
@@ -178,10 +196,13 @@ workflows:
     jobs:
       - cypress:
           context: kanopi-code
+          pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_cypress >> }
           filters: { branches: { ignore: [main] } }
       - ci-tools/pa11y:
           context: kanopi-code
           pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_pa11y >> }
             - run:
                 name: Set URL
                 command: echo "export TEST_URL=<< pipeline.parameters.target_url >>" >> "$BASH_ENV"
@@ -193,6 +214,7 @@ workflows:
           context: kanopi-code
           name: "LH - Homepage"
           pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_lighthouse >> }
             - run:
                 name: Set lighthouse url
                 command: echo "export LIGHTHOUSE_URL=<< pipeline.parameters.target_url >>" >> "$BASH_ENV"

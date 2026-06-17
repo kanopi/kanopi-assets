@@ -10,6 +10,7 @@
 # --- Code layout -----------------------------------------------------------
 export THEME_PATH="wp-content/themes/mytheme"
 export THEME_BUILD_COMMAND="build"
+export BUILD_THEME="true"                      # set "false" for a theme-less / no-build site
 
 # --- WP Engine: Production -------------------------------------------------
 export WPE_REMOTE_HOST_PROD="myinstall.ssh.wpengine.net"

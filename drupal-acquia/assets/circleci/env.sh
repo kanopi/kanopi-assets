@@ -17,5 +17,6 @@ export DOCROOT="docroot"                       # Acquia's Drupal docroot
 export THEME_NAME="mytheme"
 export THEME_PATH="docroot/themes/custom/mytheme"
 export THEME_BUILD_COMMAND="build:prod"
+export BUILD_THEME="true"                       # set "false" for a theme-less / no-build site
 
 # PHP / Node versions are pipeline parameters at the top of config.yml.

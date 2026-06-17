@@ -17,6 +17,7 @@ the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 `.tugboat/config.yml`, `.tugboat/tugboat.env`, `.tugboat/apache-file-proxy.conf`.
 
 **Gitignored, re-scaffolded each install:**
+`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
 `.tugboat/scripts/{common,install-tools,build,database,files,deploy}.sh`.
 
 ## CircleCI
@@ -25,6 +26,13 @@ the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 production. The pipeline self-advances build → deploy → test via
 `ci-tools/trigger-pipeline`. Fill remotes in `.circleci/env.sh`. Secrets in the
 `kanopi-code` context. PHP/Node versions are pipeline parameters.
+
+**Toggling stages:** set `BUILD_THEME="false"` in `env.sh` to skip the theme
+build (also auto-skips with no `package.json`). The test jobs are boolean
+pipeline parameters in `config.yml` — `run_backstop`, `run_lighthouse`,
+`run_pa11y` (default `true`); flip a default to `false` to skip. Jobs live in
+`config.yml`, not `env.sh` — CircleCI resolves the workflow before `env.sh` is
+sourced.
 
 ## Tugboat — file handling
 

@@ -1,4 +1,4 @@
-# Files/paths excluded from the rsync deploy to WP Engine (seeded once; edit per project).
+# Files/paths excluded from the rsync deploy (seeded once; edit per project).
 .git
 .github
 .circleci
@@ -8,4 +8,13 @@ tests
 .ddev
 README.md
 .gitignore
+
+# Environment-specific / host-managed config — never overwrite the server's copy
+# (these hold DB credentials and per-environment settings).
+wp-config.php
+wp-config-local.php
+wp-config-ddev.php
+.env
+
+# Runtime-generated content (lives on the server, not in the repo).
 wp-content/uploads

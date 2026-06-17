@@ -17,6 +17,7 @@ self-managed hosting** (any server reachable over SSH), on the Kanopi orbs.
 `.tugboat/tugboat.env`, `.tugboat/settings.local.php`.
 
 **Gitignored, re-scaffolded each install:**
+`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
 `.tugboat/scripts/{common,install-tools,build,database,files,deploy}.sh`.
 
 ## CircleCI
@@ -25,6 +26,12 @@ Default deploy is `deploy/rsync`, tag-gated (`stage-*` → staging, `prod-*` →
 production). A **`deploy/git` alternative is included commented out** in
 `build-deploy` — uncomment it and comment the rsync jobs if the host deploys via
 git. Fill targets in `.circleci/env.sh`; secrets in the `kanopi-code` context.
+
+**Toggling stages:** set `BUILD_THEME="false"` in `env.sh` to skip the theme
+build (also auto-skips with no `package.json`). The post-build jobs are boolean
+pipeline parameters in `config.yml` — `run_lighthouse`, `run_pa11y` (default
+`true`); flip a default to `false` to skip. Jobs live in `config.yml`, not
+`env.sh` — CircleCI resolves the workflow before `env.sh` is sourced.
 
 ## Tugboat — file handling
 

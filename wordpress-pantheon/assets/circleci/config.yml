@@ -14,6 +14,14 @@ parameters:
   php_version:  { type: string, default: "8.3" }
   node_version: { type: string, default: "20.11.0" }
   cron_env:     { type: string, default: "live" }
+  # Optional post-deploy stages. Flip a default to false to skip that job for
+  # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
+  # resolves the workflow before env.sh is sourced). Theme build is toggled
+  # separately via BUILD_THEME in .circleci/env.sh.
+  run_cypress:    { type: boolean, default: true }
+  run_lighthouse: { type: boolean, default: true }
+  run_pa11y:      { type: boolean, default: true }
+  run_backstop:   { type: boolean, default: true }
 
 orbs:
   ci-tools:    kanopi/ci-tools@2
@@ -28,6 +36,17 @@ commands:
       - run:
           name: Load project env
           command: cat .circleci/env.sh >> "$BASH_ENV"
+  gate:
+    description: "End the job early (as success) unless the given toggle is true."
+    parameters:
+      enabled: { type: boolean }
+    steps:
+      - unless:
+          condition: << parameters.enabled >>
+          steps:
+            - run:
+                name: Stage disabled via pipeline parameter — skipping
+                command: circleci-agent step halt
 
 executors:
   php:
@@ -53,22 +72,14 @@ jobs:
       - restore_cache:
           keys: ["wp-theme-{{ checksum \"composer.lock\" }}", "wp-theme-"]
       - run:
-          name: Composer install
+          name: Composer install (also materializes gitignored .circleci/scripts)
           command: composer install || echo "no composer.json; classic WordPress"
       - run:
-          name: Install + build theme
-          command: |
-            cd "${THEME_PATH}"
-            npm ci
-            npm run build
+          name: Compile theme
+          command: ./.circleci/scripts/compile-theme.sh
       - save_cache:
           key: wp-theme-{{ checksum "composer.lock" }}
           paths: ["vendor"]
-      - run:
-          name: Stage compiled assets
-          command: |
-            mkdir -p /tmp/workspace
-            cp -vr "${THEME_PATH}/dist" /tmp/workspace/dist
       - persist_to_workspace:
           root: /tmp/workspace
           paths: ["dist"]
@@ -194,7 +205,9 @@ workflows:
       - cypress:
           requires: [deploy-to-pantheon]
           context: kanopi-code
-          pre-steps: [ci-tools/set-pantheon-url]
+          pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_cypress >> }
+            - ci-tools/set-pantheon-url
           filters: { branches: { ignore: [main] } }
           post-steps:
             - ci-tools/post-artifact-to-github:
@@ -211,6 +224,7 @@ workflows:
           requires: [deploy-to-pantheon]
           context: kanopi-code
           pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_lighthouse >> }
             - ci-tools/set-pantheon-url: { store-as: LIGHTHOUSE_URL }
           url: "${LIGHTHOUSE_URL}"
           post-steps:
@@ -221,6 +235,7 @@ workflows:
           context: kanopi-code
           urls: "${PR_ENV_URL}"
           pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_pa11y >> }
             - ci-tools/set-pantheon-url: { store-as: PR_ENV_URL }
           post-steps:
             - ci-tools/post-to-github-commit: { body: '@/tmp/pa11y-ci-results.txt', when: on_fail }
@@ -232,6 +247,7 @@ workflows:
           search-find: 'TEST_URL'
           search-replace: '${TEST_URL}'
           pre-steps:
+            - gate: { enabled: << pipeline.parameters.run_backstop >> }
             - ci-tools/set-pantheon-url: { store-as: TEST_URL }
             - ci-tools/set-pantheon-url: { site-env: "dev", store-as: REFERENCE_URL }
           post-steps:
