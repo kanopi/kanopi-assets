@@ -22,10 +22,17 @@ services:
         - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/install-tools.sh
       update:
+        # Snapshot baseline: dependencies + DB + files, cached and refreshed
+        # on demand. database.sh needs the wp-config build.sh creates.
         - ./.tugboat/scripts/build.sh
         - ./.tugboat/scripts/database.sh
         - ./.tugboat/scripts/files.sh
       build:
+        # Runs on EVERY preview build (each commit), so re-run build.sh here to
+        # pull this commit's composer deps and rebuild the theme. composer
+        # install re-materializes the gitignored scripts, so re-apply +x.
+        - ./.tugboat/scripts/build.sh
+        - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/deploy.sh
 
   mysql:

@@ -72,3 +72,11 @@ For Tugboat previews, set `WP_MULTISITE=true` in `tugboat.env` (and
 map cleanly to a single preview host; **subdomain** networks only resolve the
 primary site (subsites need wildcard DNS, which Tugboat doesn't provide by
 default).
+
+## Tugboat — phases
+
+`composer install` and the theme build run on **every** preview build (the
+`build` phase re-runs `build.sh`), so each commit's `composer.lock` and theme
+assets are reflected — not just the cached snapshot. `composer install` honors
+the lockfile (reproducible); it does not bump to newer releases (that would be
+`composer update`).
