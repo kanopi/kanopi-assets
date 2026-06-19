@@ -10,8 +10,22 @@ fi
 
 log "Creating Tugboat wp-config.php"
 rm -f "${CMS_ROOT}/wp-config.php" || true
-${WP} config create --dbname="tugboat" --dbuser="tugboat" --dbpass="tugboat" \
-  --dbhost="mysql" --dbprefix="${TABLE_PREFIX}" --force
+if [ "${WP_MULTISITE}" = "true" ] && [ -f "${CMS_ROOT}/wp-config-multisite.php" ]; then
+  # Pull the network constants from the committed, version-controlled config so
+  # the preview matches every other environment. deploy.sh feeds the correct
+  # DOMAIN_CURRENT_SITE to wp-cli via the WP_MULTISITE_DOMAIN env var.
+  log "Including wp-config-multisite.php (network constants)"
+  ${WP} config create --dbname="tugboat" --dbuser="tugboat" --dbpass="tugboat" \
+    --dbhost="mysql" --dbprefix="${TABLE_PREFIX}" --force \
+    --extra-php <<'PHP'
+require_once __DIR__ . '/wp-config-multisite.php';
+PHP
+else
+  [ "${WP_MULTISITE}" = "true" ] && \
+    log "WP_MULTISITE=true but wp-config-multisite.php not found at ${CMS_ROOT}; network constants will be missing."
+  ${WP} config create --dbname="tugboat" --dbuser="tugboat" --dbpass="tugboat" \
+    --dbhost="mysql" --dbprefix="${TABLE_PREFIX}" --force
+fi
 
 if [ "${BUILD_THEME}" = "true" ] && [ -n "${THEME_PATH}" ] && [ -f "${TUGBOAT_ROOT}/${THEME_PATH}/package.json" ]; then
   log "Building theme in ${THEME_PATH}"

@@ -17,4 +17,6 @@ wp-config-ddev.php
 .env
 
 # Runtime-generated content (lives on the server, not in the repo).
+# uploads also covers per-site multisite media under wp-content/uploads/sites/<id>.
 wp-content/uploads
+wp-content/blogs.dir

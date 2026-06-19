@@ -12,6 +12,8 @@ fi
 : "${CMS:=wordpress}"
 : "${PROJECT_DOCROOT:=}"
 : "${TABLE_PREFIX:=wp_}"
+: "${WP_MULTISITE:=false}"
+: "${WP_MULTISITE_TYPE:=subdirectory}"
 : "${BUILD_THEME:=true}"
 : "${NODE_PACKAGE_MANAGER:=npm}"
 : "${THEME_PATH:=}"

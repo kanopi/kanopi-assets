@@ -44,3 +44,29 @@ pipeline parameters in `config.yml` — `run_lighthouse`, `run_pa11y` (default
 
 DB is streamed from the source over SSH (`database.sh`). Add the source host's
 SSH key in the Tugboat dashboard.
+
+## Multisite
+
+The network constants live in a committed, version-controlled
+**`wp-config-multisite.php`** (seeded once, yours to edit) so every environment
+shares one definition. Require it from `wp-config.php`, above the
+"stop editing" line:
+
+```php
+require_once __DIR__ . '/wp-config-multisite.php';
+```
+
+The file resolves `DOMAIN_CURRENT_SITE` from `WP_MULTISITE_DOMAIN` → request
+host → a hard-coded fallback, so it works on web and CLI. Edit
+`SUBDOMAIN_INSTALL` in it for a subdomain network.
+
+For Tugboat previews, set `WP_MULTISITE=true` in `tugboat.env` (and
+`WP_MULTISITE_TYPE=subdirectory|subdomain`). `build.sh` then includes
+`wp-config-multisite.php` in the preview `wp-config.php` (via
+`wp config create --extra-php`), and `deploy.sh` runs a network-aware
+`search-replace` (bare host → preview host across `--all-tables`, so
+`wp_site`/`wp_blogs` domains are rewritten too), feeding wp-cli the right
+`DOMAIN_CURRENT_SITE` through `WP_MULTISITE_DOMAIN`. **Subdirectory** networks
+map cleanly to a single preview host; **subdomain** networks only resolve the
+primary site (subsites need wildcard DNS, which Tugboat doesn't provide by
+default).
