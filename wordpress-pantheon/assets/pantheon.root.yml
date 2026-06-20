@@ -1,0 +1,25 @@
+# pantheon.yml — Pantheon platform config (WordPress, docroot at repo root).
+#
+# Scaffolded by composer-assets when there is NO web/ docroot (the web-docroot
+# variant, pantheon.web.yml, is used otherwise). Seeded once (overwrite:false) —
+# owned by the site. If your project ALREADY has a pantheon.yml, the seed is
+# skipped: merge the keys you need (especially `workflows`) in by hand.
+#
+# Keep php_version in sync with the CircleCI `php_version` pipeline parameter.
+# The New Relic hook needs the site secret `new_relic_api_key`:
+#   terminus secret:site:set <site> new_relic_api_key <your-key>
+api_version: 1
+php_version: 8.3          # Pantheon default
+enforce_https: full
+php_runtime_generation: 2
+database:
+  version: 10.6
+object_cache:
+  version: 6.2
+
+workflows:
+  deploy:
+    after:
+      - type: webphp
+        description: "Record the deploy in New Relic"
+        script: private/scripts/quicksilver/new_relic_deploy.php

@@ -19,8 +19,15 @@ for preview/QA, so there is **no Tugboat** config here.
 | `.circleci/env.sh` | **seed once** (`overwrite:false`) | per-project fill-in file |
 | `.circleci/scripts/compile-theme.sh` | replaced on update | Theme build (npm/yarn `$THEME_BUILD_COMMAND`), in place — runs in the deploy job before the Pantheon artifact is built |
 | `.circleci/scripts/pantheon/dev-multidev` | replaced on update | Pantheon dev/multidev deploy (wp-cli release tasks) |
-| `.circleci/scripts/pantheon/pre-deploy.sh` | **seed once** (`overwrite:false`) | Optional hook, runs before the artifact push (ships empty) |
-| `.circleci/scripts/pantheon/post-deploy.sh` | **seed once** (`overwrite:false`) | Optional hook, runs after the release tasks (ships empty) |
+| `.circleci/scripts/pantheon/pre-deploy.sh` | **seed once** (`overwrite:false`) | Optional CI hook, runs before the artifact push (ships empty) |
+| `.circleci/scripts/pantheon/post-deploy.sh` | **seed once** (`overwrite:false`) | Optional CI hook, runs after the release tasks (ships empty) |
+| `{web/private,private}/scripts/quicksilver/new_relic_deploy.php` | **seed once** (`overwrite:false`) | Quicksilver hook: record the deploy in New Relic |
+| `pantheon.yml` | **seed once** (`overwrite:false`) | Platform config + Quicksilver `deploy` hook (skipped if you already have one) |
+
+The Quicksilver script and `pantheon.yml` are placed by composer-assets
+**conditional** mapping: under `web/private/` when a `web/` docroot exists, else
+`private/` — and the matching `pantheon.yml` variant (`web_docroot: true` vs not)
+is seeded with a path to match. No deploy-time staging.
 
 Per-project values live only in `env.sh`; the logic is in the orbs + shipped
 files. Update the package (or bump the orb versions) to fix every site. To
@@ -42,6 +49,23 @@ let you customize the deploy without forking `dev-multidev`. They ship empty and
 run only if present — `pre-deploy.sh` before the artifact is pushed,
 `post-deploy.sh` after the wp-cli release tasks, with `$TERMINUS_SITE.$TERMINUS_ENV`
 in scope and terminus authenticated.
+
+These are **CI-side** hooks (CircleCI deploys to dev/multidev). For **platform**
+deploys (dev→test→live promotions), see Quicksilver below.
+
+## Quicksilver hooks
+
+`pantheon.yml` registers a `workflows.deploy.after` hook that runs **on Pantheon**
+after every code deploy — including dashboard promotions that never touch CI:
+
+- **`new_relic_deploy.php`** — records a deploy marker in New Relic. Requires the
+  site secret: `terminus secret:site:set <site> new_relic_api_key <key>`.
+
+composer-assets seeds the script and `pantheon.yml` under `web/private/` when a
+`web/` docroot exists, else `private/` (conditional mapping on `exists: web`), so
+the hook path always resolves and the script ships in the committed artifact —
+no deploy-time staging. **If your project already has a `pantheon.yml`**, the
+seeded one is skipped — copy its `workflows` block in by hand.
 
 ## Toggling stages
 

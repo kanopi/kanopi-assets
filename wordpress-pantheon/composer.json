@@ -8,7 +8,7 @@
         { "name": "Kanopi Studios" }
     ],
     "require": {
-        "kanopi/composer-assets": "^1"
+        "kanopi/composer-assets": "^1.2"
     },
     "extra": {
         "composer-assets": {
@@ -19,7 +19,23 @@
                 ".circleci/scripts/pantheon/dev-multidev": { "path": "assets/circleci/scripts/pantheon/dev-multidev", "gitignore": true },
                 ".circleci/scripts/pantheon/pre-deploy.sh":  { "path": "assets/circleci/scripts/pantheon/pre-deploy.sh", "overwrite": false, "gitignore": false },
                 ".circleci/scripts/pantheon/post-deploy.sh": { "path": "assets/circleci/scripts/pantheon/post-deploy.sh", "overwrite": false, "gitignore": false }
-            }
+            },
+            "conditional": [
+                {
+                    "if": { "exists": "web" },
+                    "file-mapping": {
+                        "web/private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
+                        "pantheon.yml": { "path": "assets/pantheon.web.yml", "overwrite": false, "gitignore": false }
+                    }
+                },
+                {
+                    "unless": { "exists": "web" },
+                    "file-mapping": {
+                        "private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
+                        "pantheon.yml": { "path": "assets/pantheon.root.yml", "overwrite": false, "gitignore": false }
+                    }
+                }
+            ]
         }
     }
 }

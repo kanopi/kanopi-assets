@@ -12,7 +12,7 @@
 version: 2.1
 
 parameters:
-  php_version:  { type: string, default: "8.3" }
+  php_version:  { type: string, default: "8.3" }   # cimg/php tag; keep in sync with pantheon.yml
   cron_env:     { type: string, default: "live" }
   # Optional post-deploy stages. Flip a default to false to skip that job for
   # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
