@@ -28,8 +28,11 @@ else
 fi
 
 if [ "${BUILD_THEME}" = "true" ] && [ -n "${THEME_PATH}" ] && [ -f "${TUGBOAT_ROOT}/${THEME_PATH}/package.json" ]; then
-  log "Building theme in ${THEME_PATH}"
-  ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && npm ci && npm run "${THEME_BUILD_COMMAND}" )
+  log "Building theme in ${THEME_PATH} (${NODE_PACKAGE_MANAGER})"
+  case "${NODE_PACKAGE_MANAGER}" in
+    yarn) ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && yarn install --immutable && yarn run "${THEME_BUILD_COMMAND}" ) ;;
+    *)    ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && npm ci && npm run "${THEME_BUILD_COMMAND}" ) ;;
+  esac
 fi
 
 ln -snf "${CMS_ROOT}" "${DOCROOT:-/var/www/html}" 2>/dev/null || true

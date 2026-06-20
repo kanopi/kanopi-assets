@@ -16,6 +16,17 @@ fi
 : "${WP_MULTISITE_TYPE:=subdirectory}"
 : "${BUILD_THEME:=true}"
 : "${NODE_PACKAGE_MANAGER:=npm}"
+: "${NODE_VERSION:=20.11.0}"
+: "${NVM_DIR:=/usr/local/nvm}"
+export NVM_DIR
+# Put nvm's node/npm/yarn on PATH (install-tools.sh installs them). Skipped on
+# first init before that runs. nvm.sh isn't `set -u` clean, so toggle it off.
+if [ -s "${NVM_DIR}/nvm.sh" ]; then
+  set +u
+  # shellcheck disable=SC1091
+  . "${NVM_DIR}/nvm.sh"
+  set -u
+fi
 : "${THEME_PATH:=}"
 : "${THEME_BUILD_COMMAND:=build}"
 : "${PROD_URL:=}"

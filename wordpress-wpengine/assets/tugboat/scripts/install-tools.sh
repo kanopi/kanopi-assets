@@ -15,9 +15,17 @@ if ! command -v wp >/dev/null 2>&1; then
   chmod +x /usr/local/bin/wp
 fi
 
-log "Installing Node 20.x"
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash - >/dev/null
-apt-get install -y nodejs >/dev/null
+log "Installing Node ${NODE_VERSION} + Yarn via nvm"
+mkdir -p "${NVM_DIR}"
+curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash >/dev/null
+set +u
+# shellcheck disable=SC1091
+. "${NVM_DIR}/nvm.sh"
+set -u
+nvm install "${NODE_VERSION}" >/dev/null
+nvm alias default "${NODE_VERSION}" >/dev/null
+corepack enable >/dev/null 2>&1 || npm install -g corepack >/dev/null 2>&1
+corepack prepare "yarn@${YARN_VERSION:-4.15.0}" --activate >/dev/null 2>&1 || true
 node --version
 
 # Link the document root to the path Apache serves.

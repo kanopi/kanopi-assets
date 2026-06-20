@@ -11,8 +11,11 @@ composer --working-dir="${TUGBOAT_ROOT}" install --no-dev --optimize-autoloader
 ln -sf "${TUGBOAT_ROOT}/vendor/bin/drush" /usr/local/bin/drush
 
 if [ "${BUILD_THEME}" = "true" ] && [ -n "${THEME_PATH}" ] && [ -f "${TUGBOAT_ROOT}/${THEME_PATH}/package.json" ]; then
-  log "Building theme in ${THEME_PATH}"
-  ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && npm install && npm run "${THEME_BUILD_COMMAND}" )
+  log "Building theme in ${THEME_PATH} (${NODE_PACKAGE_MANAGER})"
+  case "${NODE_PACKAGE_MANAGER}" in
+    yarn) ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && yarn install --immutable && yarn run "${THEME_BUILD_COMMAND}" ) ;;
+    *)    ( cd "${TUGBOAT_ROOT}/${THEME_PATH}" && npm ci && npm run "${THEME_BUILD_COMMAND}" ) ;;
+  esac
 fi
 
 log "Linking docroot"
