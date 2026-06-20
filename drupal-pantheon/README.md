@@ -15,10 +15,12 @@ for preview/QA, so there is **no Tugboat** config here.
 
 | Destination | Update policy | Purpose |
 |---|---|---|
-| `.circleci/config.yml` | replaced on update | Full workflow: phpcs/phpstan/rector/twig, compile→deploy→cypress/lighthouse/pa11y/sdtt/backstop, automated-updates, cron |
+| `.circleci/config.yml` | replaced on update | Full workflow: phpcs/phpstan/rector/twig, deploy→cypress/lighthouse/pa11y/sdtt/backstop, automated-updates, cron |
 | `.circleci/env.sh` | **seed once** (`overwrite:false`) | The per-project fill-in file |
-| `.circleci/scripts/compile-theme.sh` | replaced on update | Theme build (`npm ci` + `npm run $THEME_BUILD_COMMAND`) + asset staging |
+| `.circleci/scripts/compile-theme.sh` | replaced on update | Theme build (npm/yarn `$THEME_BUILD_COMMAND`), in place — runs in the deploy job before the Pantheon artifact is built |
 | `.circleci/scripts/pantheon/dev-multidev` | replaced on update | Pantheon dev/multidev deploy |
+| `.circleci/scripts/pantheon/pre-deploy.sh` | **seed once** (`overwrite:false`) | Optional hook, runs before the artifact push (ships empty) |
+| `.circleci/scripts/pantheon/post-deploy.sh` | **seed once** (`overwrite:false`) | Optional hook, runs after the release tasks (ships empty) |
 
 The logic lives in the orbs and the shipped files; per-project values live only
 in `env.sh`. **Bump the orb version or update this package to roll a fix to
@@ -28,13 +30,23 @@ script path) in its own `composer.json` and commits its own copy.
 ## Fill in `.circleci/env.sh`
 
 `TERMINUS_SITE`, `PANTHEON_UUID`, `DEFAULT_BRANCH`, `DOCROOT`, `THEME_NAME`,
-`THEME_PATH`. PHP/Node **versions** are pipeline parameters at the top of
-`config.yml` (docker images resolve before `env.sh` can be sourced).
+`THEME_PATH`, `NODE_VERSION`, `NODE_PACKAGE_MANAGER` (`npm`/`yarn`). The **PHP**
+version is a pipeline parameter at the top of `config.yml` (the docker image
+resolves before `env.sh` can be sourced); **Node** is installed at runtime via
+nvm, so `NODE_VERSION` lives in `env.sh`.
+
+## Deploy hooks
+
+`pre-deploy.sh` and `post-deploy.sh` (seeded once, committed, **yours to edit**)
+let you customize the deploy without forking `dev-multidev`. They ship empty and
+run only if present — `pre-deploy.sh` before the artifact is pushed,
+`post-deploy.sh` after the release tasks (`drush deploy` + cache clear), with
+`$TERMINUS_SITE.$TERMINUS_ENV` in scope and terminus authenticated.
 
 ## Toggling stages
 
 - **Theme build** — set `BUILD_THEME="false"` in `env.sh` for a theme-less /
-  no-build site (the `compile-theme` job then skips `npm`; it also auto-skips
+  no-build site (`compile-theme.sh` then skips the build; it also auto-skips
   when the theme has no `package.json`).
 - **Post-deploy jobs** — `config.yml` exposes boolean pipeline parameters
   (`run_cypress`, `run_lighthouse`, `run_pa11y`, `run_sdtt`, `run_backstop`),

@@ -16,7 +16,9 @@
                 ".circleci/config.yml":                    { "path": "assets/circleci/config.yml", "overwrite": false, "gitignore": false },
                 ".circleci/env.sh":                        { "path": "assets/circleci/env.sh", "overwrite": false, "gitignore": false },
                 ".circleci/scripts/compile-theme.sh":      { "path": "assets/circleci/scripts/compile-theme.sh", "gitignore": true },
-                ".circleci/scripts/pantheon/dev-multidev": { "path": "assets/circleci/scripts/pantheon/dev-multidev", "gitignore": true }
+                ".circleci/scripts/pantheon/dev-multidev": { "path": "assets/circleci/scripts/pantheon/dev-multidev", "gitignore": true },
+                ".circleci/scripts/pantheon/pre-deploy.sh":  { "path": "assets/circleci/scripts/pantheon/pre-deploy.sh", "overwrite": false, "gitignore": false },
+                ".circleci/scripts/pantheon/post-deploy.sh": { "path": "assets/circleci/scripts/pantheon/post-deploy.sh", "overwrite": false, "gitignore": false }
             }
         }
     }

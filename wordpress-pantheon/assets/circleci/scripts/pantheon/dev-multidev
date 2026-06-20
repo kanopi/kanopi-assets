@@ -10,11 +10,25 @@ set -eo pipefail
 : "${TERMINUS_SITE:?set TERMINUS_SITE in .circleci/env.sh}"
 : "${TERMINUS_TOKEN:?set TERMINUS_TOKEN in the kanopi-code context}"
 
+# Run an OWNED, seeded-once deploy hook (pre-deploy.sh / post-deploy.sh) if the
+# site has one. They ship empty; projects edit them to customize the deploy.
+run_deploy_hook() {
+  local name="$1"
+  local hook
+  hook="$(dirname "${BASH_SOURCE[0]}")/${name}"
+  if [ -f "$hook" ]; then
+    echo "Running deploy hook: ${name}"
+    bash "$hook"
+  fi
+}
+
 terminus -n auth:login --machine-token="$TERMINUS_TOKEN"
 terminus -n env:wake "$TERMINUS_SITE.dev"
 
 terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes
 terminus -n build:env:delete:ci "$TERMINUS_SITE" --yes
+
+run_deploy_hook pre-deploy.sh
 
 if [[ "$CI_BRANCH" != "${DEFAULT_BRANCH:-main}" ]]; then
   terminus -n build:env:create "$TERMINUS_SITE.dev" "$TERMINUS_ENV" --yes
@@ -27,5 +41,7 @@ terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- core update-db || true
 terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- cache flush || true
 terminus -n wp "$TERMINUS_SITE.$TERMINUS_ENV" -- rewrite flush || true
 terminus -n env:clear-cache "$TERMINUS_SITE.$TERMINUS_ENV"
+
+run_deploy_hook post-deploy.sh
 
 terminus -n build:env:delete:pr "$TERMINUS_SITE" --yes
