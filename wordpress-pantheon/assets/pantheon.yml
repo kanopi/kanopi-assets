@@ -1,0 +1,22 @@
+# pantheon.yml — Pantheon platform config (WordPress).
+#
+# Seeded once (overwrite:false) — owned by the site. If your project ALREADY has
+# a pantheon.yml, composer-assets will not overwrite it: copy the `workflows`
+# block below into your existing file by hand.
+#
+# `web_docroot` must match your actual docroot. install-quicksilver.sh reads it
+# to stage the Quicksilver scripts into web/private (true) or private (false);
+# keep the script path below in sync with that choice.
+#
+# The New Relic hook needs the site secret `new_relic_api_key`:
+#   terminus secret:site:set <site> new_relic_api_key <your-key>
+api_version: 1
+
+web_docroot: true
+
+workflows:
+  deploy:
+    after:
+      - type: webphp
+        description: "Record the deploy in New Relic"
+        script: web/private/scripts/quicksilver/new_relic_deploy.php

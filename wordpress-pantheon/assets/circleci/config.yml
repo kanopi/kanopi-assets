@@ -131,6 +131,9 @@ jobs:
           name: Compile theme (in place, before the Pantheon artifact is built)
           command: ./.circleci/scripts/compile-theme.sh
       - run:
+          name: Stage Quicksilver scripts (web/private or private per pantheon.yml)
+          command: ./.circleci/scripts/pantheon/install-quicksilver.sh
+      - run:
           name: Composer build for Pantheon
           command: |
             composer -n build-assets || true

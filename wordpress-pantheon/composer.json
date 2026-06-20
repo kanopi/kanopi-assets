@@ -18,7 +18,10 @@
                 ".circleci/scripts/compile-theme.sh":      { "path": "assets/circleci/scripts/compile-theme.sh", "gitignore": true },
                 ".circleci/scripts/pantheon/dev-multidev": { "path": "assets/circleci/scripts/pantheon/dev-multidev", "gitignore": true },
                 ".circleci/scripts/pantheon/pre-deploy.sh":  { "path": "assets/circleci/scripts/pantheon/pre-deploy.sh", "overwrite": false, "gitignore": false },
-                ".circleci/scripts/pantheon/post-deploy.sh": { "path": "assets/circleci/scripts/pantheon/post-deploy.sh", "overwrite": false, "gitignore": false }
+                ".circleci/scripts/pantheon/post-deploy.sh": { "path": "assets/circleci/scripts/pantheon/post-deploy.sh", "overwrite": false, "gitignore": false },
+                ".circleci/scripts/pantheon/install-quicksilver.sh": { "path": "assets/circleci/scripts/pantheon/install-quicksilver.sh", "gitignore": true },
+                ".circleci/scripts/pantheon/quicksilver/new_relic_deploy.php": { "path": "assets/circleci/scripts/pantheon/quicksilver/new_relic_deploy.php", "gitignore": true },
+                "pantheon.yml": { "path": "assets/pantheon.yml", "overwrite": false, "gitignore": false }
             }
         }
     }
