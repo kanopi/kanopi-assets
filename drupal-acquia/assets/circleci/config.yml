@@ -2,8 +2,9 @@
 # CircleCI — Drupal on Acquia   (Kanopi orbs)
 # =============================================================================
 # Seeded once (overwrite:false) — this file is owned by the site. Per-project
-# identity lives in .circleci/env.sh (sourced by `load-env`); PHP/Node versions
-# are pipeline parameters below (used throughout). Deploy is the kanopi/deploy
+# identity lives in .circleci/env.sh (sourced by `load-env`); the PHP version is
+# a pipeline parameter below (it selects the image), while Node is installed at
+# runtime via nvm (NODE_VERSION in env.sh). Deploy is the kanopi/deploy
 # `git` orb pushing a build artifact to Acquia. The post_build_tests workflow is
 # triggered by Tugboat's `online` phase (it calls the CircleCI API with
 # run_post_build_tests=true + the preview URL). Secrets come from `kanopi-code`.
@@ -12,7 +13,6 @@ version: 2.1
 
 parameters:
   php_version:           { type: string,  default: "8.3" }
-  node_version:          { type: string,  default: "20.17.0" }
   run_post_build_tests:  { type: boolean, default: false }
   target_url:            { type: string,  default: "" }
   tugboat_instance_id:   { type: string,  default: "" }
@@ -29,7 +29,6 @@ orbs:
   cms-updates: kanopi/cms-updates@2
   deploy:      kanopi/deploy@1
   slack:       circleci/slack@4
-  node:        circleci/node@5
 
 commands:
   load-env:
@@ -54,10 +53,6 @@ executors:
     docker:
       - image: cimg/php:<< pipeline.parameters.php_version >>
     working_directory: ~/project
-  node:
-    docker:
-      - image: cimg/node:<< pipeline.parameters.node_version >>
-    working_directory: ~/project
   cypress:
     docker:
       - image: cimg/php:<< pipeline.parameters.php_version >>-browsers
@@ -65,31 +60,6 @@ executors:
     resource_class: large
 
 jobs:
-  compile-theme:
-    # php executor (not node) so `composer install` can run — that is what
-    # materializes the gitignored .circleci/scripts/compile-theme.sh. node is
-    # added on top for the theme build.
-    executor: php
-    steps:
-      - checkout
-      - load-env
-      - node/install:
-          node-version: << pipeline.parameters.node_version >>
-      - restore_cache:
-          keys: ["node-{{ .Branch }}-{{ checksum \"composer.lock\" }}", "node-{{ .Branch }}-"]
-      - run:
-          name: Composer install (also materializes gitignored .circleci/scripts)
-          command: composer install --no-interaction
-      - run:
-          name: Compile theme
-          command: ./.circleci/scripts/compile-theme.sh
-      - save_cache:
-          key: node-{{ .Branch }}-{{ checksum "composer.lock" }}
-          paths: ["~/.npm"]
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths: ["dist"]
-
   cypress:
     executor: cypress
     environment:
@@ -104,8 +74,8 @@ jobs:
           name: Composer install
           command: composer install --no-interaction
       - ci-tools/copy-ssh-key
-      - node/install:
-          node-version: << pipeline.parameters.node_version >>
+      - ci-tools/install-node:
+          node-version: "${NODE_VERSION}"
       - run:
           name: Prime cache
           command: curl -I "${SITE_URL}"
@@ -171,23 +141,22 @@ workflows:
       not:
         equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
-      - compile-theme:
-          context: kanopi-code
       - deploy/git:
           image: cimg/php:<< pipeline.parameters.php_version >>
           name: Deploy to Acquia
           context: kanopi-code
           git-remote-url: "${ACQUIA_REPO}"
           git-commit-assets: true
-          requires: [compile-theme]
           pre-push:
             - load-env
+            - ci-tools/install-node:
+                node-version: "${NODE_VERSION}"
             - run:
-                name: Composer build (no dev)
+                name: Composer build (no dev; also materializes gitignored .circleci/scripts)
                 command: composer install --no-dev --optimize-autoloader
             - run:
-                name: Copy compiled theme assets
-                command: cp -vr ./dist "${THEME_PATH}/" 2>/dev/null || cp -vr /tmp/workspace/dist "${THEME_PATH}/"
+                name: Compile theme (in place; git-commit-assets ships the build)
+                command: ./.circleci/scripts/compile-theme.sh
             - ci-tools/remove-files:
                 docroot: "docroot"
 

@@ -21,9 +21,12 @@ export DEFAULT_BRANCH="main"
 export DOCROOT="web"
 export THEME_NAME="mytheme"
 export THEME_PATH="web/themes/custom/mytheme"
-export THEME_BUILD_COMMAND="build"            # npm script run by compile-theme.sh
+export THEME_BUILD_COMMAND="build"            # script run by compile-theme.sh
 export BUILD_THEME="true"                     # set "false" for a theme-less / no-build site
+export NODE_VERSION="20.11.0"                  # installed at runtime via nvm; keep in sync with theme .nvmrc
+export NODE_PACKAGE_MANAGER="npm"             # "npm" or "yarn"
 
-# NOTE: PHP / Node versions are CircleCI pipeline parameters at the top of
-# config.yml (docker images are resolved at config-compile time, before this
-# file can be sourced). Keep them in sync with pantheon.yml and .nvmrc.
+# NOTE: PHP version is a CircleCI pipeline parameter at the top of config.yml
+# (the docker image is resolved at config-compile time, before this file can be
+# sourced). Node is installed at runtime via nvm, so NODE_VERSION lives here;
+# keep it in sync with the theme's .nvmrc.

@@ -2,7 +2,8 @@
 # CircleCI — Drupal on custom / self-managed hosting   (Kanopi orbs)
 # =============================================================================
 # Seeded once (overwrite:false) — owned by the site. Per-project values live in
-# .circleci/env.sh; PHP/Node versions are pipeline parameters. Default deploy is
+# .circleci/env.sh; the PHP version is a pipeline parameter (selects the image),
+# Node is installed at runtime via nvm (NODE_VERSION in env.sh). Default deploy is
 # the kanopi/deploy `rsync` orb (tag-gated: stage-* -> staging, prod-* ->
 # production). A `deploy/git` alternative is included below, COMMENTED OUT —
 # uncomment it (and comment the rsync jobs) if the host deploys via git.
@@ -13,7 +14,6 @@ version: 2.1
 parameters:
   stage:        { type: string,  default: "build" }
   php_version:  { type: string,  default: "8.3" }
-  node_version: { type: string,  default: "20.11.0" }
   # Optional post-build stages. Flip a default to false to skip that job for
   # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
   # resolves the workflow before env.sh is sourced). Theme build is toggled
@@ -25,7 +25,6 @@ orbs:
   ci-tools: kanopi/ci-tools@2
   deploy:   kanopi/deploy@1
   slack:    circleci/slack@4
-  node:     circleci/node@5
 
 commands:
   load-env:
@@ -58,6 +57,8 @@ deploy_defaults: &deploy_defaults
   image: cimg/php:<< pipeline.parameters.php_version >>
   after-checkout:
     - load-env
+    - ci-tools/install-node:
+        node-version: "${NODE_VERSION}"
     - run:
         name: Composer build (no dev; also materializes gitignored .circleci/scripts)
         command: composer install --no-dev --optimize-autoloader

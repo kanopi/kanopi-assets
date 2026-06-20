@@ -11,6 +11,8 @@
 export THEME_PATH="wp-content/themes/mytheme"
 export THEME_BUILD_COMMAND="build"
 export BUILD_THEME="true"                      # set "false" for a theme-less / no-build site
+export NODE_VERSION="20.11.0"                   # installed at runtime via nvm (ci-tools/install-node)
+export NODE_PACKAGE_MANAGER="npm"              # "npm" or "yarn"
 
 # --- rsync target: Production ----------------------------------------------
 export DEPLOY_HOST_PROD="prod.example.com"
@@ -31,4 +33,6 @@ export DEPLOY_GIT_REMOTE="ssh://git@git.example.com/site.git"
 export TEST_URL="https://stg.example.com/"
 export REFERENCE_URL="https://www.example.com/"
 
-# PHP / Node versions are pipeline parameters at the top of config.yml.
+# PHP version is a pipeline parameter at the top of config.yml (it selects the
+# Docker image, resolved before this file is sourced). Node is installed at
+# runtime via nvm, so NODE_VERSION lives above with the other project knobs.

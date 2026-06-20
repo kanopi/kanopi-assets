@@ -17,8 +17,11 @@ export DEFAULT_BRANCH="main"
 export DOCROOT="web"
 export THEME_NAME="mytheme"
 export THEME_PATH="web/wp-content/themes/mytheme"
-export THEME_BUILD_COMMAND="build"            # npm script run by compile-theme.sh
+export THEME_BUILD_COMMAND="build"            # script run by compile-theme.sh
 export BUILD_THEME="true"                     # set "false" for a theme-less / no-build site
+export NODE_VERSION="20.11.0"                  # installed at runtime via nvm; keep in sync with theme .nvmrc
+export NODE_PACKAGE_MANAGER="npm"             # "npm" or "yarn"
 
-# PHP / Node versions are pipeline parameters at the top of config.yml
-# (docker images resolve before this file can be sourced).
+# PHP version is a pipeline parameter at the top of config.yml (the docker image
+# resolves before this file can be sourced). Node is installed at runtime via
+# nvm, so NODE_VERSION lives here with the other project knobs.

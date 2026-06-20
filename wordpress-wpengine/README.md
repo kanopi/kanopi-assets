@@ -17,7 +17,7 @@ the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 `.tugboat/config.yml`, `.tugboat/tugboat.env`, `.tugboat/apache-file-proxy.conf`.
 
 **Gitignored, re-scaffolded each install:**
-`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
+`.circleci/scripts/compile-theme.sh` (CI theme build, npm/yarn, in place),
 `.tugboat/scripts/{common,install-tools,build,database,files,deploy}.sh`.
 
 ## CircleCI
@@ -25,7 +25,8 @@ the Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 `deploy/rsync` to WP Engine, gated on git tags: `stage-*` → staging, `prod-*` →
 production. The pipeline self-advances build → deploy → test via
 `ci-tools/trigger-pipeline`. Fill remotes in `.circleci/env.sh`. Secrets in the
-`kanopi-code` context. PHP/Node versions are pipeline parameters.
+`kanopi-code` context. The PHP version is a pipeline parameter; Node is installed
+at runtime via nvm (`NODE_VERSION` / `NODE_PACKAGE_MANAGER` in `.circleci/env.sh`).
 
 **Toggling stages:** set `BUILD_THEME="false"` in `env.sh` to skip the theme
 build (also auto-skips with no `package.json`). The test jobs are boolean

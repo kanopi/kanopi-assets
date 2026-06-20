@@ -43,15 +43,24 @@ ownership — exactly the `settings.php` pattern.
 > composer-assets) runs **first** in every CI job and as the first Tugboat
 > `init` step, so the scripts exist before anything calls them.
 
-## Per-project values & PHP version
+## Per-project values, PHP & Node versions
 
 - **`.circleci/env.sh`** (committed, seeded once) holds the per-project identity
-  — site id, deploy targets, theme path, URLs. `config.yml` sources it and the
-  scripts read it.
-- **PHP / Node versions are CircleCI pipeline parameters** at the top of the
+  — site id, deploy targets, theme path, URLs, plus `NODE_VERSION` and
+  `NODE_PACKAGE_MANAGER` (`npm`/`yarn`). `config.yml` sources it and the scripts
+  read it.
+- **The PHP version is a CircleCI pipeline parameter** at the top of the
   (owned, seeded-once) `config.yml`, used throughout — images, orb tags,
-  `cms-updates` php-version. Set once; survives updates. Tugboat's PHP is the
+  `cms-updates` php-version — because CircleCI resolves docker images before any
+  file is sourced. Set once; survives updates. Tugboat's PHP is the
   `tugboatqa/php:<tag>` image in its owned `config.yml`.
+- **Node is installed at runtime via nvm**, not baked into an image — CircleCI
+  uses the `ci-tools/install-node` orb command (nvm + the pinned `NODE_VERSION` +
+  yarn via corepack), and Tugboat's `install-tools.sh` installs nvm the same way.
+  So `NODE_VERSION` lives in `env.sh` / `tugboat.env` with the other knobs, and
+  the theme build honors `NODE_PACKAGE_MANAGER`. The theme always builds **in
+  place** in the deploy job (no CircleCI workspace handoff), so the output
+  directory name (`dist`, `css`/`js`, …) doesn't matter.
 - **Secrets never live in the repo** — they come from the CircleCI `kanopi-code`
   context (`TERMINUS_TOKEN`, `GITHUB_TOKEN`, `DOCKERHUB_*`, `SLACK_WEBHOOK`,
   `TUGBOAT_TOKEN`) and the Tugboat dashboard (SSH keys, DB passwords).

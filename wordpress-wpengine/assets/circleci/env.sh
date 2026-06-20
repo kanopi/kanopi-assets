@@ -11,6 +11,8 @@
 export THEME_PATH="wp-content/themes/mytheme"
 export THEME_BUILD_COMMAND="build"
 export BUILD_THEME="true"                      # set "false" for a theme-less / no-build site
+export NODE_VERSION="16.14.2"                   # installed at runtime via nvm (ci-tools/install-node)
+export NODE_PACKAGE_MANAGER="npm"              # "npm" or "yarn"
 
 # --- WP Engine: Production -------------------------------------------------
 export WPE_REMOTE_HOST_PROD="myinstall.ssh.wpengine.net"
@@ -31,4 +33,6 @@ export WPE_UPDATE_SITE_ID="myinstallstg"
 export TEST_URL="https://myinstallstg.wpengine.com/"
 export REFERENCE_URL="https://www.example.com/"
 
-# PHP / Node versions are pipeline parameters at the top of config.yml.
+# PHP version is a pipeline parameter at the top of config.yml (it selects the
+# Docker image, resolved before this file is sourced). Node is installed at
+# runtime via nvm, so NODE_VERSION lives above with the other project knobs.

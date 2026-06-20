@@ -26,14 +26,16 @@ Kanopi orbs (`kanopi/ci-tools`, `kanopi/deploy`, `kanopi/cms-updates`).
 customize, edit + set the path to `false` in your `composer.json` to take
 ownership):
 
-`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
+`.circleci/scripts/compile-theme.sh` (CI theme build, npm/yarn, in place),
 `.tugboat/scripts/{common,install-tools,build,database,deploy}.sh`
 
-## PHP version
+## PHP & Node versions
 
 Set the `php_version` pipeline parameter at the top of `.circleci/config.yml`
 (used throughout) and the `tugboatqa/php:<tag>` image in `.tugboat/config.yml`.
-Because both files are seeded once, your choice survives package updates.
+Node is installed at runtime via nvm, so set `NODE_VERSION` (and
+`NODE_PACKAGE_MANAGER`, `npm`/`yarn`) in `.circleci/env.sh` and `.tugboat/tugboat.env`.
+Because those files are seeded once, your choices survive package updates.
 
 ## CircleCI env / secrets
 

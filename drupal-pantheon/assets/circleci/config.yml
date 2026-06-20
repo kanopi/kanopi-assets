@@ -3,9 +3,10 @@
 # =============================================================================
 # Shipped by kanopi/composer-assets-drupal-pantheon. The per-project values live in
 # .circleci/env.sh (sourced by the `load-env` command below and by the deploy
-# script). The only compile-time knobs are the PHP/Node versions, exposed as
-# pipeline parameters because CircleCI resolves docker images before any file
-# can be sourced. Secrets (TERMINUS_TOKEN, GITHUB_TOKEN, DOCKERHUB_*, SLACK_*)
+# script). The PHP version is the one compile-time knob, exposed as a pipeline
+# parameter because CircleCI resolves docker images before any file can be
+# sourced; Node is installed at runtime via nvm (NODE_VERSION in env.sh).
+# Secrets (TERMINUS_TOKEN, GITHUB_TOKEN, DOCKERHUB_*, SLACK_*)
 # come from the `kanopi-code` context.
 #
 # To push a fix to every site: edit this file (or bump the orb versions) and
@@ -16,7 +17,6 @@ version: 2.1
 
 parameters:
   php_version:   { type: string, default: "8.3" }   # cimg/php tag; keep in sync with pantheon.yml
-  node_version:  { type: string, default: "20.11.0" }  # keep in sync with theme .nvmrc
   cron_env:      { type: string, default: "live" }
   # Optional post-deploy stages. Flip a default to false to skip that job for
   # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
@@ -32,7 +32,6 @@ orbs:
   ci-tools:    kanopi/ci-tools@2
   cms-updates: kanopi/cms-updates@2
   slack:       circleci/slack@3.4.2
-  node:        circleci/node@5.0.3
 
 commands:
   load-env:
@@ -67,28 +66,6 @@ executors:
       TERM: dumb
 
 jobs:
-  compile-theme:
-    executor: php
-    steps:
-      - checkout
-      - load-env
-      - node/install:
-          node-version: << pipeline.parameters.node_version >>
-      - restore_cache:
-          keys: ["drupal-theme-{{ checksum \"composer.lock\" }}", "drupal-theme-"]
-      - run:
-          name: Composer install (also materializes gitignored .circleci/scripts)
-          command: composer install
-      - run:
-          name: Compile theme
-          command: ./.circleci/scripts/compile-theme.sh
-      - save_cache:
-          key: drupal-theme-{{ checksum "composer.lock" }}
-          paths: ["vendor"]
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths: ["dist"]
-
   cypress:
     docker:
       - image: cimg/php:<< pipeline.parameters.php_version >>-browsers
@@ -101,8 +78,8 @@ jobs:
       - load-env
       - run: { name: Composer install, command: composer install }
       - ci-tools/copy-ssh-key
-      - node/install:
-          node-version: << pipeline.parameters.node_version >>
+      - ci-tools/install-node:
+          node-version: "${NODE_VERSION}"
       - ci-tools/install-terminus
       - run:
           name: Authorize terminus
@@ -148,22 +125,22 @@ jobs:
       - ci-tools/copy-ssh-key
       - ci-tools/remove-files:
           docroot: "web"
-      - attach_workspace:
-          at: /tmp/workspace
       - run:
           name: setup-environment-vars
           command: /build-tools-ci/scripts/set-environment
+      - ci-tools/install-node:
+          node-version: "${NODE_VERSION}"
       - run:
           name: Install dependencies (materializes gitignored .circleci/scripts)
           command: composer install --no-interaction
+      - run:
+          name: Compile theme (in place, before the Pantheon artifact is built)
+          command: ./.circleci/scripts/compile-theme.sh
       - run:
           name: Composer build for Pantheon
           command: |
             composer -n build-assets
             composer run prepare-for-pantheon
-      - run:
-          name: Copy compiled theme assets
-          command: cp -vr /tmp/workspace/dist "${THEME_PATH}/"
       - run:
           name: Deploy to Pantheon (dev / multidev)
           command: ./.circleci/scripts/pantheon/dev-multidev
@@ -236,11 +213,8 @@ workflows:
       not:
         equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
-      - compile-theme:
-          context: kanopi-code
       - deploy-to-pantheon:
           context: kanopi-code
-          requires: [compile-theme]
           filters: { branches: { ignore: /^dependabot/ } }
       - cypress:
           # ci-tools provides the runner; tests live in tests/cypress.

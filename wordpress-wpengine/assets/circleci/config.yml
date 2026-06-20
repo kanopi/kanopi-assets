@@ -2,8 +2,9 @@
 # CircleCI — WordPress on WP Engine   (Kanopi orbs)
 # =============================================================================
 # Seeded once (overwrite:false) — owned by the site. Per-project values live in
-# .circleci/env.sh (sourced by `load-env`); PHP/Node versions are pipeline
-# parameters. Deploy is the kanopi/deploy `rsync` orb, gated on git tags
+# .circleci/env.sh (sourced by `load-env`); the PHP version is a pipeline
+# parameter (selects the image), Node is installed at runtime via nvm
+# (NODE_VERSION in env.sh). Deploy is the kanopi/deploy `rsync` orb, gated on git tags
 # (stage-* -> staging, prod-* -> production). The pipeline advances itself with
 # ci-tools/trigger-pipeline (build -> deploy -> test). Secrets: `kanopi-code`.
 # =============================================================================
@@ -12,7 +13,6 @@ version: 2.1
 parameters:
   stage:        { type: string,  default: "build" }
   php_version:  { type: string,  default: "8.2" }
-  node_version: { type: string,  default: "16.14.2" }
   # Optional post-build stages. Flip a default to false to skip that job for
   # this site (these are jobs, so they cannot be toggled from env.sh — CircleCI
   # resolves the workflow before env.sh is sourced). Theme build is toggled
@@ -26,7 +26,6 @@ orbs:
   cms-updates: kanopi/cms-updates@2
   deploy:      kanopi/deploy@1
   slack:       circleci/slack@4
-  node:        circleci/node@5
 
 commands:
   load-env:
@@ -65,6 +64,8 @@ deploy_defaults: &deploy_defaults
   image: cimg/php:<< pipeline.parameters.php_version >>
   after-checkout:
     - load-env
+    - ci-tools/install-node:
+        node-version: "${NODE_VERSION}"
     - run:
         name: Composer install (also materializes gitignored .circleci/scripts)
         command: composer install

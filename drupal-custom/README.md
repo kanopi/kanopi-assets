@@ -17,7 +17,7 @@ self-managed hosting** (any server reachable over SSH), on the Kanopi orbs.
 `.tugboat/tugboat.env`, `.tugboat/settings.local.php`.
 
 **Gitignored, re-scaffolded each install:**
-`.circleci/scripts/compile-theme.sh` (CI theme build + asset staging),
+`.circleci/scripts/compile-theme.sh` (CI theme build, npm/yarn, in place),
 `.tugboat/scripts/{common,install-tools,build,database,files,deploy}.sh`.
 
 ## CircleCI
