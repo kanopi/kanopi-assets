@@ -26,7 +26,7 @@
                     "file-mapping": {
                         "web/private/scripts/quicksilver/drush-deploy.php":     { "path": "assets/quicksilver/drush-deploy.php", "overwrite": false, "gitignore": false },
                         "web/private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
-                        "pantheon.yml": { "path": "assets/pantheon.web.yml", "overwrite": false, "gitignore": false }
+                        "pantheon.yml": { "path": "assets/pantheon/web.yml", "overwrite": false, "gitignore": false }
                     }
                 },
                 {
@@ -34,7 +34,7 @@
                     "file-mapping": {
                         "private/scripts/quicksilver/drush-deploy.php":     { "path": "assets/quicksilver/drush-deploy.php", "overwrite": false, "gitignore": false },
                         "private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
-                        "pantheon.yml": { "path": "assets/pantheon.root.yml", "overwrite": false, "gitignore": false }
+                        "pantheon.yml": { "path": "assets/pantheon/root.yml", "overwrite": false, "gitignore": false }
                     }
                 }
             ]

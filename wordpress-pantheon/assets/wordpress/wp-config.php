@@ -14,21 +14,19 @@
 $ddev_settings = dirname( __FILE__ ) . '/wp-config-ddev.php';
 
 /**
+ * Local configuration information.
+ *
+ * If you are working in a local/desktop development environment and want to
+ * keep your config separate, we recommend using a 'wp-config-local.php' file,
+ * which you should also make sure you .gitignore.
+ */
+if ( getenv('IS_DDEV_PROJECT') == 'true' && is_readable( $ddev_settings ) ) {
+	require_once $ddev_settings;
+/**
  * Pantheon platform settings. Everything you need should already be set.
  */
-if ( file_exists( dirname( __FILE__ ) . '/wp-config-pantheon.php' ) && isset( $_ENV['PANTHEON_ENVIRONMENT'] ) ) {
+} elseif ( file_exists( dirname( __FILE__ ) . '/wp-config-pantheon.php' ) && isset( $_ENV['PANTHEON_ENVIRONMENT'] ) ) {
 	require_once dirname( __FILE__ ) . '/wp-config-pantheon.php';
-
-	/**
-	 * Local configuration information.
-	 *
-	 * If you are working in a local/desktop development environment and want to
-	 * keep your config separate, we recommend using a 'wp-config-local.php' file,
-	 * which you should also make sure you .gitignore.
-	 */
-} elseif ( is_readable( $ddev_settings ) && ! defined( 'DB_USER' ) ) {
-	require_once $ddev_settings;
-
 } elseif ( file_exists( dirname( __FILE__ ) . '/wp-config-local.php' ) && ! isset( $_ENV['PANTHEON_ENVIRONMENT'] ) ) {
 	// IMPORTANT: ensure your local config does not include wp-settings.php
 	require_once dirname( __FILE__ ) . '/wp-config-local.php';
@@ -60,18 +58,6 @@ if ( file_exists( dirname( __FILE__ ) . '/wp-config-pantheon.php' ) && isset( $_
  * WordPress Database Table prefix.
  */
 $table_prefix = 'wp_';
-
-/**
- * For developers: WordPress debugging mode.
- *
- * You may want to examine $_ENV['PANTHEON_ENVIRONMENT'] to set this to be
- * "true" in dev, but false in test and live.
- */
-// Turn off the display of all errors and warnings on the website front-end.
-ini_set( 'display_errors', 'Off' );
-ini_set( 'error_reporting', E_ALL );
-define( 'WP_DEBUG', false );
-define( 'WP_DEBUG_DISPLAY', false );
 
 /**
  * Object Cache Pro (Redis). Provides WP_REDIS_CONFIG before WordPress loads the
