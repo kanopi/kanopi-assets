@@ -1,8 +1,7 @@
 # =============================================================================
 # Tugboat — Drupal on Acquia
 # =============================================================================
-# Seeded once (overwrite:false) — owned by the site. The first init command runs
-# `composer install`, which is what materializes the gitignored .tugboat/scripts/*
+# Seeded once (overwrite:false) — owned by the site. Every phase runs `composer install` first, which is what materializes the gitignored .tugboat/scripts/*
 # (they are re-scaffolded every install, so fixes flow automatically). Non-secret
 # settings live in .tugboat/tugboat.env; secrets (SSH keys, tokens) go in the
 # Tugboat dashboard. Bump the php image tag here to change PHP version.
@@ -15,16 +14,23 @@ services:
     depends:
       - mysql
     commands:
+      # `composer install` (re)materializes the gitignored .tugboat/scripts/* and
+      # installs deps. Every phase runs it first — committed here in config.yml,
+      # never relying on a gitignored script existing — then re-applies +x.
       init:
-        # composer install scaffolds the gitignored .tugboat/scripts/* first.
-        - composer install --no-interaction
+        - composer install --no-interaction --no-dev --optimize-autoloader
         - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/install-tools.sh
       update:
+        - composer install --no-interaction --no-dev --optimize-autoloader
+        - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/build.sh
         - ./.tugboat/scripts/database.sh
         - ./.tugboat/scripts/files.sh
       build:
+        - composer install --no-interaction --no-dev --optimize-autoloader
+        - chmod +x ./.tugboat/scripts/*.sh
+        - ./.tugboat/scripts/build.sh
         - ./.tugboat/scripts/deploy.sh
 
   memcached:

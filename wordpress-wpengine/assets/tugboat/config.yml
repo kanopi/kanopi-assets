@@ -1,8 +1,7 @@
 # =============================================================================
 # Tugboat — WordPress on WP Engine
 # =============================================================================
-# Seeded once (overwrite:false) — owned by the site. The first init command runs
-# `composer install`, which materializes the gitignored .tugboat/scripts/*.
+# Seeded once (overwrite:false) — owned by the site. Every phase runs `composer install` first, which materializes the gitignored .tugboat/scripts/*.
 # Non-secret settings live in .tugboat/tugboat.env; add the WP Engine SSH key in
 # the Tugboat dashboard. Change PHP by editing the php image tag below.
 # =============================================================================
@@ -16,23 +15,28 @@ services:
     urls:
       - /
     commands:
+      # `composer install` (re)materializes the gitignored .tugboat/scripts/* and
+      # installs deps. Every phase runs it first — committed here in config.yml,
+      # never relying on a gitignored script existing — then re-applies +x.
       init:
-        # composer install scaffolds the gitignored .tugboat/scripts/* first.
-        - composer install --no-interaction
+        - composer install --no-interaction --optimize-autoloader
         - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/install-tools.sh
       update:
         # Snapshot baseline: dependencies + DB + files, cached and refreshed
         # on demand. database.sh needs the wp-config build.sh creates.
+        - composer install --no-interaction --optimize-autoloader
+        - chmod +x ./.tugboat/scripts/*.sh
         - ./.tugboat/scripts/build.sh
         - ./.tugboat/scripts/database.sh
         - ./.tugboat/scripts/files.sh
       build:
-        # Runs on EVERY preview build (each commit), so re-run build.sh here to
-        # pull this commit's composer deps and rebuild the theme. composer
-        # install re-materializes the gitignored scripts, so re-apply +x.
-        - ./.tugboat/scripts/build.sh
+        # Runs on EVERY preview build (each commit): re-install this commit's
+        # composer deps (also re-materializing the scripts), rebuild the theme,
+        # then deploy.
+        - composer install --no-interaction --optimize-autoloader
         - chmod +x ./.tugboat/scripts/*.sh
+        - ./.tugboat/scripts/build.sh
         - ./.tugboat/scripts/deploy.sh
 
   mysql:

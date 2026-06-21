@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
 #
-# build.sh — dependencies, Tugboat wp-config, theme build, docroot link.
+# build.sh — Tugboat wp-config, theme build, docroot link. composer install runs
+# in the committed config.yml before this script, so deps already exist.
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-
-if [ -f "${TUGBOAT_ROOT}/composer.json" ]; then
-  log "composer install"
-  composer --working-dir="${TUGBOAT_ROOT}" install --optimize-autoloader
-fi
 
 log "Creating Tugboat wp-config.php"
 rm -f "${CMS_ROOT}/wp-config.php" || true
