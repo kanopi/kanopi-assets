@@ -24,7 +24,7 @@
                 {
                     "if": { "exists": "web" },
                     "file-mapping": {
-                        "web/private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
+                        "web/private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/pantheon/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
                         "web/wp-config.php": { "path": "assets/wordpress/wp-config.php", "overwrite": false, "gitignore": false },
                         "web/wp-config-pantheon.php": { "path": "assets/wordpress/wp-config-pantheon.php", "overwrite": true, "gitignore": false },
                         "web/wp-config-ocp.php": { "path": "assets/wordpress/wp-config-ocp.php", "overwrite": false, "gitignore": false },
@@ -34,7 +34,7 @@
                 {
                     "unless": { "exists": "web" },
                     "file-mapping": {
-                        "private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
+                        "private/scripts/quicksilver/new_relic_deploy.php": { "path": "assets/pantheon/quicksilver/new_relic_deploy.php", "overwrite": false, "gitignore": false },
                         "wp-config.php": { "path": "assets/wordpress/wp-config.php", "overwrite": false, "gitignore": false },
                         "wp-config-pantheon.php": { "path": "assets/wordpress/wp-config-pantheon.php", "overwrite": true, "gitignore": false },
                         "wp-config-ocp.php": { "path": "assets/wordpress/wp-config-ocp.php", "overwrite": false, "gitignore": false },
