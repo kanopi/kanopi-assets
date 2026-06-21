@@ -22,12 +22,20 @@ for preview/QA, so there is **no Tugboat** config here.
 | `.circleci/scripts/pantheon/pre-deploy.sh` | **seed once** (`overwrite:false`) | Optional CI hook, runs before the artifact push (ships empty) |
 | `.circleci/scripts/pantheon/post-deploy.sh` | **seed once** (`overwrite:false`) | Optional CI hook, runs after the release tasks (ships empty) |
 | `{web/private,private}/scripts/quicksilver/new_relic_deploy.php` | **seed once** (`overwrite:false`) | Quicksilver hook: record the deploy in New Relic |
+| `{web,.}/wp-config.php` | **seed once** (`overwrite:false`) | Main WordPress config — yours to hack on; requires the two below |
+| `{web,.}/wp-config-pantheon.php` | replaced on update (`overwrite:true`) | Pantheon platform settings — maintained centrally, do not modify |
+| `{web,.}/wp-config-ocp.php` | **seed once** (`overwrite:false`) | Object Cache Pro config (Pantheon's recommended `WP_REDIS_CONFIG`) |
 | `pantheon.yml` | **seed once** (`overwrite:false`) | Platform config + Quicksilver `deploy` hook (skipped if you already have one) |
 
-The Quicksilver script and `pantheon.yml` are placed by composer-assets
-**conditional** mapping: under `web/private/` when a `web/` docroot exists, else
-`private/` — and the matching `pantheon.yml` variant (`web_docroot: true` vs not)
-is seeded with a path to match. No deploy-time staging.
+The three `wp-config*.php` files, the Quicksilver script, and `pantheon.yml` are
+placed by composer-assets **conditional** mapping: next to the `web/` docroot
+when it exists, else at the repo root — and the matching `pantheon.yml` variant
+(`web_docroot: true` vs not) is seeded with paths to match. No deploy-time staging.
+
+`wp-config.php` requires `wp-config-pantheon.php` (platform settings) and
+`wp-config-ocp.php` (Object Cache Pro) for you, so the config works as a set out
+of the box. `wp-config-pantheon.php` is `overwrite:true` (re-applied on update,
+drift-checked) — treat it as read-only; put site changes in `wp-config.php`.
 
 Per-project values live only in `env.sh`; the logic is in the orbs + shipped
 files. Update the package (or bump the orb versions) to fix every site. To
@@ -66,6 +74,44 @@ composer-assets seeds the script and `pantheon.yml` under `web/private/` when a
 the hook path always resolves and the script ships in the committed artifact —
 no deploy-time staging. **If your project already has a `pantheon.yml`**, the
 seeded one is skipped — copy its `workflows` block in by hand.
+
+## Object Cache Pro (Redis)
+
+The package ships Pantheon's recommended `WP_REDIS_CONFIG` (OCP Config v2.0) as
+**`wp-config-ocp.php`**, seeded next to `wp-config.php` (`web/` when a web docroot
+exists, else repo root). The license token and connection details come from the
+platform (`OCP_LICENSE`, `CACHE_*` env vars), so nothing secret is committed and
+it works on every environment without `terminus install:run ocp`.
+
+To enable it:
+
+1. **Redis on + version 6.2** — already set via `object_cache: { version: 6.2 }`
+   in the seeded `pantheon.yml`; enable the add-on with `terminus redis:enable <site>`.
+2. **Require the config** from `wp-config.php`, above the "stop editing" line:
+
+   ```php
+   if ( file_exists( dirname( __FILE__ ) . '/wp-config-ocp.php' ) ) {
+       require_once dirname( __FILE__ ) . '/wp-config-ocp.php';
+   }
+   ```
+3. **Install the plugin** (composer-managed): add the OCP Composer repo + license,
+   then `composer require rhubarbgroup/object-cache-pro` (see the
+   [Pantheon OCP guide](https://docs.pantheon.io/object-cache/wordpress)).
+4. **Enable the drop-in**: activate the plugin and enable it (creates
+   `object-cache.php`), then **commit `object-cache.php`** so it reaches test/live:
+
+   ```bash
+   terminus connection:set <site>.<env> sftp
+   terminus wp -- <site>.<env> plugin activate object-cache-pro
+   terminus wp -- <site>.<env> redis enable
+   terminus env:commit <site>.<env> --message="Add Object Cache Pro drop-in"
+   terminus connection:set <site>.<env> git
+   ```
+5. **On first promotion to test/live**, flush the cache:
+   `terminus wp <site>.<env> -- cache flush` (disable any old `wp-redis` first).
+
+Local dev (DDEV/Lando) may lack `igbinary`/`zstd`; override `serializer`/`compression`
+to `php`/`none` locally, or set `WP_REDIS_DISABLED` — see the Pantheon guide.
 
 ## Toggling stages
 
