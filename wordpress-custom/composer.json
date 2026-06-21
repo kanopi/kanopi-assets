@@ -13,7 +13,7 @@
     "extra": {
         "composer-assets": {
             "file-mapping": {
-                "wp-config-multisite.php":          { "path": "assets/wp-config-multisite.php", "overwrite": false, "gitignore": false },
+                "wp-config-multisite.php":          { "path": "assets/wordpress/wp-config-multisite.php", "overwrite": false, "gitignore": false },
                 ".circleci/config.yml":             { "path": "assets/circleci/config.yml", "overwrite": false, "gitignore": false },
                 ".circleci/env.sh":                 { "path": "assets/circleci/env.sh", "overwrite": false, "gitignore": false },
                 ".circleci/exclude-files.txt":      { "path": "assets/circleci/exclude-files.txt", "overwrite": false, "gitignore": false },
