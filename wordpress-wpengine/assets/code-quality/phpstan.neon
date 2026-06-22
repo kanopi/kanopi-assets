@@ -1,0 +1,16 @@
+# phpstan.neon — WordPress static analysis. Seeded once (overwrite:false) — yours
+# to tune. Update `paths` to your custom theme(s)/plugin(s). The phpstan-wordpress
+# extension (szepeviktor/phpstan-wordpress) auto-registers via phpstan/extension-installer.
+parameters:
+  # Someday we'll get to 10.
+  level: 5
+  customRulesetUsed: true
+  reportUnmatchedIgnoredErrors: false
+  paths:
+    - wp-content/themes/mytheme
+  excludePaths:
+    - '*/vendor/*'
+    - '*/node_modules/*'
+    - '*/dist/*'
+  # Ignore extension rules here if needed.
+  #ignoreErrors:

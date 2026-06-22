@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+  phpcs.xml — WordPress coding standards. Seeded once (overwrite:false) — yours to
+  tune. Update the scanned <file> paths to your custom theme(s)/plugin(s). For a
+  PSR-4 autoloaded plugin you can add a PSR2 rule scoped to its src/ (see example).
+-->
+<ruleset name="WordPress">
+    <description>WordPress project coding standards.</description>
+
+    <!-- WordPress standards. -->
+    <rule ref="WordPress"/>
+    <rule ref="WordPress-Extra"/>
+
+    <!-- PSR2 example for a PSR-4 autoloaded plugin's classes:
+    <rule ref="PSR2">
+        <include-pattern>wp-content/plugins/my-plugin/src/*</include-pattern>
+    </rule>
+    -->
+
+    <!-- Only scan your custom code — update to your project. -->
+    <file>wp-content/themes/mytheme</file>
+
+    <!-- Exclude non-custom code. -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/dist/*</exclude-pattern>
+    <exclude-pattern>*/build/*</exclude-pattern>
+</ruleset>

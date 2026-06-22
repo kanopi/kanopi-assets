@@ -81,3 +81,28 @@ default).
 assets are reflected — not just the cached snapshot. `composer install` honors
 the lockfile (reproducible); it does not bump to newer releases (that would be
 `composer update`).
+
+## Code quality (PHPStan, Rector, PHPCS)
+
+`phpstan.neon`, `rector.php`, and `phpcs.xml` are seeded once (`overwrite:false`)
+at the repo root — yours to tune. Unlike Drupal, the scan paths are baked into the
+configs (default `wp-content/themes/mytheme`); update them to your custom
+theme(s)/plugin(s).
+
+Add the tools and the `composer` scripts the CI runs (`phpcs`, `phpstan`,
+`rector`) to your project `composer.json`:
+
+```jsonc
+"require-dev": {
+    "rector/rector": "^2",
+    "szepeviktor/phpstan-wordpress": "^2",
+    "wp-coding-standards/wpcs": "^3"
+},
+"config": { "allow-plugins": {
+    "dealerdirect/phpcodesniffer-composer-installer": true,
+    "phpstan/extension-installer": true
+} }
+```
+
+Optional: require `fsylum/rector-wordpress` for the WordPress-specific Rector set
+(uncomment it in `rector.php`).

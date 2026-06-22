@@ -126,3 +126,28 @@ to `php`/`none` locally, or set `WP_REDIS_DISABLED` — see the Pantheon guide.
 
 `TERMINUS_TOKEN`, `GITHUB_TOKEN`, `DOCKERHUB_USER`, `DOCKERHUB_PASS`,
 `SLACK_WEBHOOK`. Works for Composer-managed (Bedrock) and classic WordPress.
+
+## Code quality (PHPStan, Rector, PHPCS)
+
+`phpstan.neon`, `rector.php`, and `phpcs.xml` are seeded once (`overwrite:false`)
+at the repo root — yours to tune. Unlike Drupal, the scan paths are baked into the
+configs (default `web/wp-content/themes/mytheme` for the Pantheon web/ docroot);
+update them to your custom theme(s)/plugin(s).
+
+Add the tools and the `composer` scripts the CI runs (`phpcs`, `phpstan`,
+`rector`) to your project `composer.json`:
+
+```jsonc
+"require-dev": {
+    "rector/rector": "^2",
+    "szepeviktor/phpstan-wordpress": "^2",
+    "wp-coding-standards/wpcs": "^3"
+},
+"config": { "allow-plugins": {
+    "dealerdirect/phpcodesniffer-composer-installer": true,
+    "phpstan/extension-installer": true
+} }
+```
+
+Optional: require `fsylum/rector-wordpress` for the WordPress-specific Rector set
+(uncomment it in `rector.php`).
