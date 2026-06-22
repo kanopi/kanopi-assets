@@ -91,3 +91,28 @@ seeded one is skipped — copy its `workflows` block in by hand.
 - **automatic updates** — name a CircleCI scheduled trigger `automatic updates`.
 - **cron job …** — name a trigger starting with `cron job`; set the `cron_env`
   pipeline parameter to the target Pantheon env.
+
+## Code quality (PHPStan, Rector, Twig CS Fixer)
+
+`phpstan.neon`, `rector.php`, and `.twig-cs-fixer.php` are seeded once
+(`overwrite:false`) at the repo root — yours to tune, modeled on
+[kanopi/drupal-starter](https://github.com/kanopi/drupal-starter). They're
+docroot-agnostic: the scan paths live in the `composer` scripts, not the configs.
+
+The configs only run once your project `composer.json` has the tools and the
+scripts the CI invokes (`code-sniff-ci`, `phpstan-ci`, `rector-modules-ci`,
+`rector-themes-ci`, `twig-lint-ci`). Copy those scripts from drupal-starter (scan
+paths under `web/modules/custom` and `web/themes/custom`) and add:
+
+```jsonc
+"require-dev": {
+    "drupal/coder": "^8.3",
+    "mglaman/phpstan-drupal": "^2.0",
+    "palantirnet/drupal-rector": "^0.21.0",
+    "vincentlanglet/twig-cs-fixer": "^3"
+},
+"config": { "allow-plugins": {
+    "dealerdirect/phpcodesniffer-composer-installer": true,
+    "phpstan/extension-installer": true
+} }
+```

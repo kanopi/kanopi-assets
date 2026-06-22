@@ -1,0 +1,17 @@
+# phpstan.neon — Drupal static analysis. Seeded once (overwrite:false) — yours
+# to tune. Modeled on kanopi/drupal-starter. The scan paths come from the
+# composer `phpstan` / `phpstan-ci` scripts; the phpstan-drupal extension
+# auto-registers via phpstan/extension-installer.
+parameters:
+  # Allows for drupal/coder and phpstan to co-exist peacefully.
+  level: 5
+  customRulesetUsed: true
+  reportUnmatchedIgnoredErrors: false
+  excludePaths:
+    - '*/node_modules/*'
+  # Ignore phpstan-drupal extension's rules.
+  ignoreErrors:
+    - '#\Drupal calls should be avoided in classes, use dependency injection instead#'
+    - '#Plugin definitions cannot be altered.#'
+    - '#Missing cache backend declaration for performance.#'
+    - '#Plugin manager has cache backend specified but does not declare cache tags.#'

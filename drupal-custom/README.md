@@ -45,3 +45,28 @@ pipeline parameters in `config.yml` — `run_lighthouse`, `run_pa11y` (default
 DB is streamed from the source over SSH (`database.sh`). Add the source host's
 SSH key in the Tugboat dashboard. Automatic updates are not wired for custom
 hosts (no managed update target) — handle dependency updates via PRs.
+
+## Code quality (PHPStan, Rector, Twig CS Fixer)
+
+`phpstan.neon`, `rector.php`, and `.twig-cs-fixer.php` are seeded once
+(`overwrite:false`) at the repo root — yours to tune, modeled on
+[kanopi/drupal-starter](https://github.com/kanopi/drupal-starter). They're
+docroot-agnostic: the scan paths live in the `composer` scripts, not the configs.
+
+The configs only run once your project `composer.json` has the tools and the
+scripts the CI invokes (`code-sniff[-ci]`, `phpstan[-ci]`,
+`rector-modules`/`rector-themes` + `-ci`). Copy those scripts from drupal-starter
+(scan paths under `web/modules/custom` and `web/themes/custom`) and add:
+
+```jsonc
+"require-dev": {
+    "drupal/coder": "^8.3",
+    "mglaman/phpstan-drupal": "^2.0",
+    "palantirnet/drupal-rector": "^0.21.0",
+    "vincentlanglet/twig-cs-fixer": "^3"
+},
+"config": { "allow-plugins": {
+    "dealerdirect/phpcodesniffer-composer-installer": true,
+    "phpstan/extension-installer": true
+} }
+```

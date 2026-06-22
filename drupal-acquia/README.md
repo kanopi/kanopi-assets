@@ -58,3 +58,28 @@ CircleCI API with `run_post_build_tests`, `target_url`, `tugboat_instance_id`.
 Fill `.tugboat/tugboat.env` and add the Acquia SSH key in the Tugboat dashboard
 (Repository Settings → SSH Keys). `composer install` runs first in `init` so the
 gitignored scripts materialize before they're called.
+
+## Code quality (PHPStan, Rector, Twig CS Fixer)
+
+`phpstan.neon`, `rector.php`, and `.twig-cs-fixer.php` are seeded once
+(`overwrite:false`) at the repo root — yours to tune, modeled on
+[kanopi/drupal-starter](https://github.com/kanopi/drupal-starter). They're
+docroot-agnostic: the scan paths live in the `composer` scripts, not the configs.
+
+The configs only run once your project `composer.json` has the tools and the
+scripts the CI invokes (`code-sniff[-ci]`, `phpstan[-ci]`,
+`rector-modules`/`rector-themes` + `-ci`). Copy those scripts from drupal-starter
+(scan paths under `docroot/modules/custom` and `docroot/themes/custom`) and add:
+
+```jsonc
+"require-dev": {
+    "drupal/coder": "^8.3",
+    "mglaman/phpstan-drupal": "^2.0",
+    "palantirnet/drupal-rector": "^0.21.0",
+    "vincentlanglet/twig-cs-fixer": "^3"
+},
+"config": { "allow-plugins": {
+    "dealerdirect/phpcodesniffer-composer-installer": true,
+    "phpstan/extension-installer": true
+} }
+```
